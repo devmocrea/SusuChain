@@ -1,0 +1,18 @@
+---
+id: 0
+name: Mainnet deployment
+network: mainnet
+stacks-node: "https://api.hiro.so"
+bitcoin-node: "http://blockstack:blockstacksystem@bitcoin.blockstack.com:8332"
+plan:
+  batches:
+    - id: 0
+      transactions:
+        - contract-publish:
+            contract-name: susuchain
+            expected-sender: SP2T02XBVN9RAZ4360DSWF3JCG79B1QY2NR21RB0Q
+            cost: 37710
+            path: contracts/susuchain.clar
+            anchor-block-only: true
+            clarity-version: 3
+      epoch: "3.2"
