@@ -1,5 +1,7 @@
 import type { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox-viem";
+import * as dotenv from "dotenv";
+dotenv.config();
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -18,8 +20,14 @@ const config: HardhatUserConfig = {
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 42220,
     },
-    // Celo Sepolia Testnet
-    celo-sepolia: {
+    // Celo Alfajores Testnet (celoSepolia)
+    celoSepolia: {
+      url: "https://alfajores-forno.celo-testnet.org",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 44787,
+    },
+    // Celo Sepolia Testnet (legacy)
+    "celo-sepolia": {
       url: "https://forno.celo-sepolia.celo-testnet.org/",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 11142220,
@@ -33,7 +41,7 @@ const config: HardhatUserConfig = {
   etherscan: {
     apiKey: {
       celo: process.env.ETHERSCAN_API_KEY || "",
-      celo-sepolia: process.env.ETHERSCAN_API_KEY || "",
+      "celo-sepolia": process.env.ETHERSCAN_API_KEY || "",
     },
     customChains: [
       {
