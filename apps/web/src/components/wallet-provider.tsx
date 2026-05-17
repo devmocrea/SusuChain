@@ -7,7 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { WagmiProvider, createConfig, http, useConnect } from "wagmi";
 import { celo, celoSepolia } from "wagmi/chains";
-import { ConnectButton } from "./connect-button";
+
 
 const connectors = connectorsForWallets(
   [
@@ -18,7 +18,7 @@ const connectors = connectorsForWallets(
   ],
   {
     appName: "susuchain",
-    projectId: process.env.NEXT_PUBLIC_WC_PROJECT_ID!,
+    projectId: process.env.NEXT_PUBLIC_WC_PROJECT_ID ?? "",
   }
 );
 
