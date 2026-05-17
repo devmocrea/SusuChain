@@ -1,4 +1,4 @@
-import { StacksMainnet } from "@stacks/network";
+import { STACKS_MAINNET } from "@stacks/network";
 import {
   openContractCall,
 } from "@stacks/connect";
@@ -10,7 +10,7 @@ import {
   AnchorMode,
 } from "@stacks/transactions";
 
-export const STACKS_NETWORK = new StacksMainnet();
+export const STACKS_NETWORK = STACKS_MAINNET;
 
 export const STACKS_CONTRACT_ADDRESS =
   process.env.NEXT_PUBLIC_STACKS_CONTRACT_ADDRESS ?? "";

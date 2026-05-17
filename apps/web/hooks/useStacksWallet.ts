@@ -1,7 +1,6 @@
 "use client";
 import { useState, useCallback } from "react";
 import { showConnect, disconnect } from "@stacks/connect";
-import { StacksMainnet } from "@stacks/network";
 
 export function useStacksWallet() {
   const [stacksAddress, setStacksAddress] = useState<string | null>(null);
@@ -12,7 +11,6 @@ export function useStacksWallet() {
         name: "SusuChain",
         icon: "/icon.png",
       },
-      network: new StacksMainnet(),
       onFinish: (data) => {
         setStacksAddress(
           data.userSession.loadUserData().profile.stxAddress.mainnet
