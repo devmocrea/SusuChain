@@ -1,25 +1,24 @@
 "use client";
 import { useState, useCallback } from "react";
-import { showConnect, disconnect } from "@stacks/connect";
+import { connect, disconnect } from "@stacks/connect";
 
 export function useStacksWallet() {
   const [stacksAddress, setStacksAddress] = useState<string | null>(null);
 
-  const connectLeather = useCallback(() => {
-    showConnect({
-      appDetails: {
-        name: "SusuChain",
-        icon: "/icon.png",
-      },
-      onFinish: (data) => {
-        setStacksAddress(
-          data.userSession.loadUserData().profile.stxAddress.mainnet
+  const connectLeather = useCallback(async () => {
+    try {
+      const response = await connect();
+      if (response && response.addresses) {
+        const stxAddr = response.addresses.find(
+          (a: any) => a.symbol === "STX"
         );
-      },
-      onCancel: () => {
-        console.log("Leather wallet connection cancelled");
-      },
-    });
+        if (stxAddr) {
+          setStacksAddress(stxAddr.address);
+        }
+      }
+    } catch (err) {
+      console.error("Leather wallet connection failed:", err);
+    }
   }, []);
 
   const disconnectLeather = useCallback(() => {
