@@ -10,6 +10,9 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'susuchain',
   description: 'A new Celo blockchain project',
+  other: {
+    'talentapp:project_verification': '1f6d642eee89f69a3ea7295e40bc0b45d4c03f087149147f1f373d6908a81f7a1c7bd54fc05283cab1f93697da218a7b364183a14489cb83c174e9fd79e9b31f'
+  }
 };
 
 export default function RootLayout({
