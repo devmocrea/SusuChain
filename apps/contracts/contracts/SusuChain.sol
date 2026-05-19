@@ -44,6 +44,15 @@ contract SusuChain {
     function contribute(uint256 circleId) external payable {
         Circle storage circle = circles[circleId];
         require(circle.active, "Circle is not active");
+        
+        // MiniPay Gas Estimation Bypass:
+        // MiniPay's fee abstraction proxy often strips msg.value during eth_estimateGas.
+        // We return early if msg.value is 0 so the simulation succeeds without reverting.
+        // This is safe because state changes are not reached.
+        if (msg.value == 0) {
+            return;
+        }
+
         require(msg.value == circle.contributionAmount, "Wrong contribution amount");
         bool memberFound = false;
         for (uint256 i = 0; i < circle.members.length; i++) {

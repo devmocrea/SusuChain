@@ -8,6 +8,7 @@ import {
   listCV,
   principalCV,
   AnchorMode,
+  PostConditionMode,
 } from "@stacks/transactions";
 
 export const STACKS_NETWORK = STACKS_MAINNET;
@@ -55,6 +56,7 @@ export function callContribute(
     functionArgs: [uintCV(circleId)],
     network: STACKS_NETWORK,
     anchorMode: AnchorMode.Any,
+    postConditionMode: PostConditionMode.Allow,
     onFinish,
     onCancel: () => console.log("contribute cancelled"),
   });
@@ -72,6 +74,7 @@ export function callTriggerPayout(
     functionArgs: [uintCV(circleId)],
     network: STACKS_NETWORK,
     anchorMode: AnchorMode.Any,
+    postConditionMode: PostConditionMode.Allow,
     onFinish,
     onCancel: () => console.log("trigger-payout cancelled"),
   });

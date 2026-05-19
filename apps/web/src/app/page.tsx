@@ -121,18 +121,23 @@ export default function Home() {
     try {
       if (!circleDetails) return;
       setContributeStatus("⏳ Submitting...");
+      
       const walletClient = createWalletClient({
         chain: celo,
         transport: custom(window.ethereum as any),
       });
-      const hash = await walletClient.writeContract({
+
+      const { request } = await publicClient.simulateContract({
         address: SUSUCHAIN_CELO_ADDRESS,
         abi: SUSUCHAIN_CELO_ABI,
         functionName: "contribute",
         args: [BigInt(circleId)],
+        value: BigInt(circleDetails[1].toString()),
         account: address as `0x${string}`,
-        value: circleDetails[1],
       });
+
+      const hash = await walletClient.writeContract(request);
+
       setContributeStatus(`✅ TX: ${hash}`);
     } catch (err: any) {
       setContributeStatus(`❌ ${err.message}`);
