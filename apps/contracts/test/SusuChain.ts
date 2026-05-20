@@ -639,5 +639,14 @@ describe("SusuChain", function () {
       expect(balanceAfter - balanceBefore).to.equal(parseEther("2"));
       expect(await susuChain.read.pendingWithdrawals([revAddr])).to.equal(0n);
     });
+
+    it("Should reject withdrawals from users with zero pending balance", async function () {
+      const { susuChain, member1 } = await loadFixture(deploySusuChainFixture);
+      const susuM1 = await hre.viem.getContractAt("SusuChain", susuChain.address, { client: { wallet: member1 } });
+
+      await expect(
+        susuM1.write.withdraw()
+      ).to.be.rejectedWith("No pending withdrawal");
+    });
   });
 });
