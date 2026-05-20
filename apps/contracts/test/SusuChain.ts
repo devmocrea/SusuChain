@@ -105,5 +105,17 @@ describe("SusuChain Dynamic Limits", function () {
         susuChain.write.setContributionLimits([parseEther("10"), parseEther("5")])
       ).to.be.rejectedWith("Min limit must be <= max limit");
     });
+
+    it("Should emit an event when limits are updated", async function () {
+      const { susuChain, publicClient } = await loadFixture(deploySusuChainFixture);
+
+      const hash = await susuChain.write.setContributionLimits([parseEther("0.5"), parseEther("50")]);
+      await publicClient.waitForTransactionReceipt({ hash });
+
+      const events = await susuChain.getEvents.ContributionLimitsUpdated();
+      expect(events).to.have.lengthOf(1);
+      expect(events[0].args.minAmount).to.equal(parseEther("0.5"));
+      expect(events[0].args.maxAmount).to.equal(parseEther("50"));
+    });
   });
 });
