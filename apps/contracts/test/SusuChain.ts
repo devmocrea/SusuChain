@@ -19,4 +19,27 @@ describe("SusuChain", function () {
       publicClient,
     };
   }
+
+  describe("Circle Life Cycle and Contributions", function () {
+    it("Should successfully create a Susu circle", async function () {
+      const { susuChain, member1, member2 } = await loadFixture(deploySusuChainFixture);
+
+      const members = [
+        getAddress(member1.account.address),
+        getAddress(member2.account.address),
+      ];
+
+      await susuChain.write.createCircle([
+        "Celo Circle",
+        parseEther("1"),
+        30n,
+        members,
+      ]);
+
+      const circle = await susuChain.read.getCircle([0n]);
+      expect(circle[0]).to.equal("Celo Circle");
+      expect(circle[1]).to.equal(parseEther("1"));
+      expect(circle[6]).to.be.true; // active
+    });
+  });
 });
