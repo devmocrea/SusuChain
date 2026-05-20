@@ -113,5 +113,67 @@ describe("SusuChain", function () {
         susuM1.write.contribute([0n], { value: parseEther("0.5") })
       ).to.be.rejectedWith("Wrong contribution amount");
     });
+
+    it("Should reject double payments in the same round", async function () {
+      const { susuChain, member1, member2 } = await loadFixture(deploySusuChainFixture);
+      const members = [getAddress(member1.account.address), getAddress(member2.account.address)];
+      await susuChain.write.createCircle(["Susu Circle", parseEther("1"), 30n, members]);
+      
+      const susuM1 = await hre.viem.getContractAt(
+        "SusuChain",
+        susuChain.address,
+        { client: { wallet: member1 } }
+      );
+      await susuM1.write.contribute([0n], { value: parseEther("1") });
+      await expect(
+        susuM1.write.contribute([0n], { value: parseEther("1") })
+      ).to.be.rejectedWith("Already paid this round");
+    });
+
+    it("Should deactivate the circle when all rounds are completed", async function () {
+      const { susuChain, member1, member2 } = await loadFixture(
+        deploySusuChainFixture
+      );
+
+      const m1Addr = getAddress(member1.account.address);
+      const m2Addr = getAddress(member2.account.address);
+      const members = [m1Addr, m2Addr];
+
+      await susuChain.write.createCircle([
+        "Susu Circle",
+        parseEther("1"),
+        30n,
+        members,
+      ]);
+
+      const susuM1 = await hre.viem.getContractAt(
+        "SusuChain",
+        susuChain.address,
+        { client: { wallet: member1 } }
+      );
+      const susuM2 = await hre.viem.getContractAt(
+        "SusuChain",
+        susuChain.address,
+        { client: { wallet: member2 } }
+      );
+
+      // Round 0
+      await susuM1.write.contribute([0n], { value: parseEther("1") });
+      await susuM2.write.contribute([0n], { value: parseEther("1") });
+
+      // Circle currentRound should be 1
+      let circle = await susuChain.read.getCircle([0n]);
+      expect(circle[4]).to.equal(1n);
+      expect(circle[6]).to.be.true;
+
+      // Round 1
+      await susuM1.write.contribute([0n], { value: parseEther("1") });
+      await susuM2.write.contribute([0n], { value: parseEther("1") });
+
+      // Circle currentRound should be 2 (equals members.length = 2), active should be false
+      circle = await susuChain.read.getCircle([0n]);
+      expect(circle[4]).to.equal(2n);
+      expect(circle[6]).to.be.false;
+    });
   });
 });
