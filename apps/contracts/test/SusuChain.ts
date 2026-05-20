@@ -81,5 +81,37 @@ describe("SusuChain", function () {
       const balanceAfter = await publicClient.getBalance({ address: m1Addr });
       expect(balanceAfter - balanceBefore).to.equal(parseEther("2"));
     });
+
+    it("Should reject contributions from non-members", async function () {
+      const { susuChain, member1, member2, nonMember } = await loadFixture(
+        deploySusuChainFixture
+      );
+      const members = [getAddress(member1.account.address), getAddress(member2.account.address)];
+      await susuChain.write.createCircle(["Susu Circle", parseEther("1"), 30n, members]);
+      
+      const susuNon = await hre.viem.getContractAt(
+        "SusuChain",
+        susuChain.address,
+        { client: { wallet: nonMember } }
+      );
+      await expect(
+        susuNon.write.contribute([0n], { value: parseEther("1") })
+      ).to.be.rejectedWith("Not a member");
+    });
+
+    it("Should reject wrong contribution amounts", async function () {
+      const { susuChain, member1, member2 } = await loadFixture(deploySusuChainFixture);
+      const members = [getAddress(member1.account.address), getAddress(member2.account.address)];
+      await susuChain.write.createCircle(["Susu Circle", parseEther("1"), 30n, members]);
+      
+      const susuM1 = await hre.viem.getContractAt(
+        "SusuChain",
+        susuChain.address,
+        { client: { wallet: member1 } }
+      );
+      await expect(
+        susuM1.write.contribute([0n], { value: parseEther("0.5") })
+      ).to.be.rejectedWith("Wrong contribution amount");
+    });
   });
 });
