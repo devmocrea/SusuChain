@@ -19,6 +19,7 @@ contract SusuChain is Pausable {
     mapping(uint256 => mapping(uint256 => mapping(address => bool))) public hasPaid;
     mapping(uint256 => uint256) public roundBalance;
     uint256 public circleCount;
+    mapping(address => uint256) public pendingWithdrawals;
 
     address public owner;
     uint256 public minContributionAmount;
