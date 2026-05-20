@@ -8,4 +8,7 @@ Sentry.init({
 
   // Setting this option to true will print useful information to the console while you're setting up Sentry.
   debug: false,
+
+  // Set runtime environment classification
+  environment: process.env.NODE_ENV || "development",
 });
