@@ -320,4 +320,167 @@ describe("SusuChain", function () {
       ).to.be.rejectedWith("Circle is not active");
     });
   });
+
+  describe("Emergency Circuit Breaker", function () {
+    it("Should start in an unpaused state", async function () {
+      const { susuChain } = await loadFixture(deploySusuChainFixture);
+      expect(await susuChain.read.paused()).to.be.false;
+    });
+
+    it("Should allow the owner to pause the contract", async function () {
+      const { susuChain } = await loadFixture(deploySusuChainFixture);
+      await susuChain.write.pause();
+      expect(await susuChain.read.paused()).to.be.true;
+    });
+
+    it("Should allow the owner to unpause the contract", async function () {
+      const { susuChain } = await loadFixture(deploySusuChainFixture);
+      await susuChain.write.pause();
+      expect(await susuChain.read.paused()).to.be.true;
+      await susuChain.write.unpause();
+      expect(await susuChain.read.paused()).to.be.false;
+    });
+
+    it("Should reject non-owners from pausing the contract", async function () {
+      const { susuChain, nonOwner } = await loadFixture(deploySusuChainFixture);
+      const susuNon = await hre.viem.getContractAt(
+        "SusuChain",
+        susuChain.address,
+        { client: { wallet: nonOwner } }
+      );
+      await expect(
+        susuNon.write.pause()
+      ).to.be.rejectedWith("Only the owner can call this function");
+    });
+
+    it("Should reject non-owners from unpausing the contract", async function () {
+      const { susuChain, nonOwner } = await loadFixture(deploySusuChainFixture);
+      await susuChain.write.pause();
+      expect(await susuChain.read.paused()).to.be.true;
+
+      const susuNon = await hre.viem.getContractAt(
+        "SusuChain",
+        susuChain.address,
+        { client: { wallet: nonOwner } }
+      );
+      await expect(
+        susuNon.write.unpause()
+      ).to.be.rejectedWith("Only the owner can call this function");
+    });
+
+    it("Should block circle creation when paused", async function () {
+      const { susuChain, member1, member2 } = await loadFixture(deploySusuChainFixture);
+      const members = [getAddress(member1.account.address), getAddress(member2.account.address)];
+
+      await susuChain.write.pause();
+      expect(await susuChain.read.paused()).to.be.true;
+
+      await expect(
+        susuChain.write.createCircle([
+          "Circle Under Pause",
+          parseEther("1"),
+          30n,
+          members,
+        ])
+      ).to.be.rejectedWith("EnforcedPause()");
+    });
+
+    it("Should block contributions when paused", async function () {
+      const { susuChain, member1, member2 } = await loadFixture(deploySusuChainFixture);
+      const members = [getAddress(member1.account.address), getAddress(member2.account.address)];
+
+      await susuChain.write.createCircle([
+        "Circle For Contribution Pause Test",
+        parseEther("1"),
+        30n,
+        members,
+      ]);
+
+      await susuChain.write.pause();
+      expect(await susuChain.read.paused()).to.be.true;
+
+      const susuM1 = await hre.viem.getContractAt(
+        "SusuChain",
+        susuChain.address,
+        { client: { wallet: member1 } }
+      );
+
+      await expect(
+        susuM1.write.contribute([0n], { value: parseEther("1") })
+      ).to.be.rejectedWith("EnforcedPause()");
+    });
+
+    it("Should allow circle creation when unpaused", async function () {
+      const { susuChain, member1, member2 } = await loadFixture(deploySusuChainFixture);
+      const members = [getAddress(member1.account.address), getAddress(member2.account.address)];
+
+      await susuChain.write.pause();
+      expect(await susuChain.read.paused()).to.be.true;
+
+      await susuChain.write.unpause();
+      expect(await susuChain.read.paused()).to.be.false;
+
+      await expect(
+        susuChain.write.createCircle([
+          "Circle Under Unpause",
+          parseEther("1"),
+          30n,
+          members,
+        ])
+      ).to.be.fulfilled;
+    });
+
+    it("Should allow contributions when unpaused", async function () {
+      const { susuChain, member1, member2 } = await loadFixture(deploySusuChainFixture);
+      const members = [getAddress(member1.account.address), getAddress(member2.account.address)];
+
+      await susuChain.write.createCircle([
+        "Circle For Contribution Unpause Test",
+        parseEther("1"),
+        30n,
+        members,
+      ]);
+
+      await susuChain.write.pause();
+      expect(await susuChain.read.paused()).to.be.true;
+
+      await susuChain.write.unpause();
+      expect(await susuChain.read.paused()).to.be.false;
+
+      const susuM1 = await hre.viem.getContractAt(
+        "SusuChain",
+        susuChain.address,
+        { client: { wallet: member1 } }
+      );
+
+      await expect(
+        susuM1.write.contribute([0n], { value: parseEther("1") })
+      ).to.be.fulfilled;
+    });
+
+    it("Should emit a Paused event when paused", async function () {
+      const { susuChain, publicClient, owner } = await loadFixture(deploySusuChainFixture);
+
+      const hash = await susuChain.write.pause();
+      await publicClient.waitForTransactionReceipt({ hash });
+
+      const events = await susuChain.getEvents.Paused();
+      expect(events).to.have.lengthOf(1);
+      expect(getAddress(events[0].args.account!)).to.equal(getAddress(owner.account.address));
+    });
+
+    it("Should emit an Unpaused event when unpaused", async function () {
+      const { susuChain, publicClient, owner } = await loadFixture(deploySusuChainFixture);
+
+      await susuChain.write.pause();
+      expect(await susuChain.read.paused()).to.be.true;
+
+      const hash = await susuChain.write.unpause();
+      await publicClient.waitForTransactionReceipt({ hash });
+
+      const events = await susuChain.getEvents.Unpaused();
+      expect(events).to.have.lengthOf(1);
+      expect(getAddress(events[0].args.account!)).to.equal(getAddress(owner.account.address));
+    });
+  });
 });

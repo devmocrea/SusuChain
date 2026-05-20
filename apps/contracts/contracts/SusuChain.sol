@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-contract SusuChain {
+import "@openzeppelin/contracts/utils/Pausable.sol";
+
+contract SusuChain is Pausable {
 
     struct Circle {
         string name;
@@ -45,12 +47,20 @@ contract SusuChain {
         emit ContributionLimitsUpdated(_minAmount, _maxAmount);
     }
 
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
     function createCircle(
         string memory name,
         uint256 contributionAmount,
         uint256 cycleDurationDays,
         address[] memory members
-    ) external {
+    ) external whenNotPaused {
         require(members.length >= 2, "Minimum 2 members required");
         require(contributionAmount >= minContributionAmount, "Contribution too low");
         require(contributionAmount <= maxContributionAmount, "Contribution too high");
@@ -65,7 +75,7 @@ contract SusuChain {
         emit CircleCreated(id, msg.sender, name);
     }
 
-    function contribute(uint256 circleId) external payable {
+    function contribute(uint256 circleId) external payable whenNotPaused {
         Circle storage circle = circles[circleId];
         // Ensure the circle is active and accepting contributions
         require(circle.active, "Circle is not active");
