@@ -38,6 +38,13 @@ contract SusuChain {
         _;
     }
 
+    function setContributionLimits(uint256 _minAmount, uint256 _maxAmount) external onlyOwner {
+        require(_minAmount <= _maxAmount, "Min limit must be <= max limit");
+        minContributionAmount = _minAmount;
+        maxContributionAmount = _maxAmount;
+        emit ContributionLimitsUpdated(_minAmount, _maxAmount);
+    }
+
     function createCircle(
         string memory name,
         uint256 contributionAmount,
@@ -45,7 +52,8 @@ contract SusuChain {
         address[] memory members
     ) external {
         require(members.length >= 2, "Minimum 2 members required");
-        require(contributionAmount > 0, "Contribution must be greater than zero");
+        require(contributionAmount >= minContributionAmount, "Contribution too low");
+        require(contributionAmount <= maxContributionAmount, "Contribution too high");
         uint256 id = circleCount++;
         circles[id].name = name;
         circles[id].contributionAmount = contributionAmount;
