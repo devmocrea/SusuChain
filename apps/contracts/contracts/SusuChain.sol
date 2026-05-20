@@ -120,8 +120,11 @@ contract SusuChain is Pausable {
         circle.lastPayout = block.timestamp;
         if (circle.currentRound == circle.members.length) { circle.active = false; }
         (bool sent, ) = recipient.call{value: amount, gas: 50000}("");
-        require(sent, "Payout failed");
-        emit PayoutSent(circleId, recipient, amount, round);
+        if (sent) {
+            emit PayoutSent(circleId, recipient, amount, round);
+        } else {
+            pendingWithdrawals[recipient] += amount;
+        }
     }
 
     function getCircle(uint256 circleId) external view returns (
