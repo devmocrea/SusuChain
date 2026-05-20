@@ -485,6 +485,25 @@ describe("SusuChain", function () {
   });
 
   describe("Secure EVM Payout Fallback", function () {
-    // Skeleton for secure payout fallback suite
+    it("Should successfully payout directly to a standard EOA recipient", async function () {
+      const { susuChain, member1, member2, publicClient } = await loadFixture(deploySusuChainFixture);
+      const m1Addr = getAddress(member1.account.address);
+      const m2Addr = getAddress(member2.account.address);
+      const members = [m1Addr, m2Addr];
+
+      await susuChain.write.createCircle(["Standard Circle", parseEther("1"), 30n, members]);
+
+      const susuM1 = await hre.viem.getContractAt("SusuChain", susuChain.address, { client: { wallet: member1 } });
+      await susuM1.write.contribute([0n], { value: parseEther("1") });
+
+      const susuM2 = await hre.viem.getContractAt("SusuChain", susuChain.address, { client: { wallet: member2 } });
+      const balanceBefore = await publicClient.getBalance({ address: m1Addr });
+      const hash = await susuM2.write.contribute([0n], { value: parseEther("1") });
+      await publicClient.waitForTransactionReceipt({ hash });
+
+      const balanceAfter = await publicClient.getBalance({ address: m1Addr });
+      expect(balanceAfter - balanceBefore).to.equal(parseEther("2"));
+      expect(await susuChain.read.pendingWithdrawals([m1Addr])).to.equal(0n);
+    });
   });
 });
