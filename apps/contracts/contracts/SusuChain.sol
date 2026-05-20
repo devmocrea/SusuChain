@@ -19,6 +19,7 @@ contract SusuChain is Pausable {
     mapping(uint256 => mapping(uint256 => mapping(address => bool))) public hasPaid;
     mapping(uint256 => uint256) public roundBalance;
     uint256 public circleCount;
+    mapping(address => uint256) public pendingWithdrawals;
 
     address public owner;
     uint256 public minContributionAmount;
@@ -28,6 +29,8 @@ contract SusuChain is Pausable {
     event ContributionMade(uint256 indexed circleId, address indexed contributor, uint256 amount, uint256 round);
     event PayoutSent(uint256 indexed circleId, address indexed recipient, uint256 amount, uint256 round);
     event ContributionLimitsUpdated(uint256 minAmount, uint256 maxAmount);
+    event PayoutFailed(uint256 indexed circleId, address indexed recipient, uint256 amount, uint256 round);
+    event Withdrawal(address indexed recipient, uint256 amount);
 
     constructor() {
         owner = msg.sender;
@@ -107,6 +110,15 @@ contract SusuChain is Pausable {
         if (allPaid) { _triggerPayout(circleId); }
     }
 
+    function withdraw() external whenNotPaused {
+        uint256 amount = pendingWithdrawals[msg.sender];
+        require(amount > 0, "No pending withdrawal");
+        pendingWithdrawals[msg.sender] = 0;
+        (bool sent, ) = msg.sender.call{value: amount}("");
+        require(sent, "Withdrawal failed");
+        emit Withdrawal(msg.sender, amount);
+    }
+
     function _triggerPayout(uint256 circleId) internal {
         Circle storage circle = circles[circleId];
         uint256 round = circle.currentRound;
@@ -116,9 +128,13 @@ contract SusuChain is Pausable {
         circle.currentRound++;
         circle.lastPayout = block.timestamp;
         if (circle.currentRound == circle.members.length) { circle.active = false; }
-        (bool sent, ) = recipient.call{value: amount}("");
-        require(sent, "Payout failed");
-        emit PayoutSent(circleId, recipient, amount, round);
+        (bool sent, ) = recipient.call{value: amount, gas: 50000}("");
+        if (sent) {
+            emit PayoutSent(circleId, recipient, amount, round);
+        } else {
+            pendingWithdrawals[recipient] += amount;
+            emit PayoutFailed(circleId, recipient, amount, round);
+        }
     }
 
     function getCircle(uint256 circleId) external view returns (
