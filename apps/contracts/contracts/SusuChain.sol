@@ -28,6 +28,8 @@ contract SusuChain is Pausable {
     event ContributionMade(uint256 indexed circleId, address indexed contributor, uint256 amount, uint256 round);
     event PayoutSent(uint256 indexed circleId, address indexed recipient, uint256 amount, uint256 round);
     event ContributionLimitsUpdated(uint256 minAmount, uint256 maxAmount);
+    event PayoutFailed(uint256 indexed circleId, address indexed recipient, uint256 amount, uint256 round);
+    event Withdrawal(address indexed recipient, uint256 amount);
 
     constructor() {
         owner = msg.sender;
