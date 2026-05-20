@@ -52,7 +52,8 @@ contract SusuChain {
         address[] memory members
     ) external {
         require(members.length >= 2, "Minimum 2 members required");
-        require(contributionAmount > 0, "Contribution must be greater than zero");
+        require(contributionAmount >= minContributionAmount, "Contribution too low");
+        require(contributionAmount <= maxContributionAmount, "Contribution too high");
         uint256 id = circleCount++;
         circles[id].name = name;
         circles[id].contributionAmount = contributionAmount;
