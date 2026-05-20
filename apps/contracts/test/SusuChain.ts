@@ -322,6 +322,9 @@ describe("SusuChain", function () {
   });
 
   describe("Emergency Circuit Breaker", function () {
-    // Harness and fixture tests setup placeholder
+    it("Should start in an unpaused state", async function () {
+      const { susuChain } = await loadFixture(deploySusuChainFixture);
+      expect(await susuChain.read.paused()).to.be.false;
+    });
   });
 });
