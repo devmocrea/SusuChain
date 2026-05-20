@@ -409,5 +409,25 @@ describe("SusuChain", function () {
         susuM1.write.contribute([0n], { value: parseEther("1") })
       ).to.be.rejectedWith("EnforcedPause()");
     });
+
+    it("Should allow circle creation when unpaused", async function () {
+      const { susuChain, member1, member2 } = await loadFixture(deploySusuChainFixture);
+      const members = [getAddress(member1.account.address), getAddress(member2.account.address)];
+
+      await susuChain.write.pause();
+      expect(await susuChain.read.paused()).to.be.true;
+
+      await susuChain.write.unpause();
+      expect(await susuChain.read.paused()).to.be.false;
+
+      await expect(
+        susuChain.write.createCircle([
+          "Circle Under Unpause",
+          parseEther("1"),
+          30n,
+          members,
+        ])
+      ).to.be.fulfilled;
+    });
   });
 });
