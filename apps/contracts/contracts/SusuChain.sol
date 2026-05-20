@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/utils/Pausable.sol";
 
-contract SusuChain {
+contract SusuChain is Pausable {
 
     struct Circle {
         string name;
