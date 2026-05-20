@@ -18,9 +18,32 @@ contract SusuChain {
     mapping(uint256 => uint256) public roundBalance;
     uint256 public circleCount;
 
+    address public owner;
+    uint256 public minContributionAmount;
+    uint256 public maxContributionAmount;
+
     event CircleCreated(uint256 indexed circleId, address indexed creator, string name);
     event ContributionMade(uint256 indexed circleId, address indexed contributor, uint256 amount, uint256 round);
     event PayoutSent(uint256 indexed circleId, address indexed recipient, uint256 amount, uint256 round);
+    event ContributionLimitsUpdated(uint256 minAmount, uint256 maxAmount);
+
+    constructor() {
+        owner = msg.sender;
+        minContributionAmount = 0.001 ether;
+        maxContributionAmount = 10000 ether;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only the owner can call this function");
+        _;
+    }
+
+    function setContributionLimits(uint256 _minAmount, uint256 _maxAmount) external onlyOwner {
+        require(_minAmount <= _maxAmount, "Min limit must be <= max limit");
+        minContributionAmount = _minAmount;
+        maxContributionAmount = _maxAmount;
+        emit ContributionLimitsUpdated(_minAmount, _maxAmount);
+    }
 
     function createCircle(
         string memory name,
@@ -29,7 +52,8 @@ contract SusuChain {
         address[] memory members
     ) external {
         require(members.length >= 2, "Minimum 2 members required");
-        require(contributionAmount > 0, "Contribution must be greater than zero");
+        require(contributionAmount >= minContributionAmount, "Contribution too low");
+        require(contributionAmount <= maxContributionAmount, "Contribution too high");
         uint256 id = circleCount++;
         circles[id].name = name;
         circles[id].contributionAmount = contributionAmount;
