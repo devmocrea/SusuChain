@@ -14,4 +14,19 @@ Sentry.init({
   // This sets the sample rate to be 10%. You may want this to be 100% while
   // in development and sample fewer sessions in production.
   replaysSessionSampleRate: 0.1,
+
+  // Ignore standard browser extension and noise errors
+  ignoreErrors: [
+    "ResizeObserver loop limit exceeded",
+    "ResizeObserver loop completed with undelivered notifications",
+    "Non-Error promise rejection captured",
+  ],
+
+  denyUrls: [
+    // Chrome extensions
+    /extensions\//i,
+    /^chrome-extension:\/\//i,
+    // Firefox extensions
+    /^moz-extension:\/\//i,
+  ],
 });
