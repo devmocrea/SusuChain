@@ -51,6 +51,10 @@ contract SusuChain is Pausable {
         _pause();
     }
 
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
     function createCircle(
         string memory name,
         uint256 contributionAmount,
