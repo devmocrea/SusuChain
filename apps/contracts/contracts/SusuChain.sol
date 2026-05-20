@@ -60,7 +60,7 @@ contract SusuChain is Pausable {
         uint256 contributionAmount,
         uint256 cycleDurationDays,
         address[] memory members
-    ) external {
+    ) external whenNotPaused {
         require(members.length >= 2, "Minimum 2 members required");
         require(contributionAmount >= minContributionAmount, "Contribution too low");
         require(contributionAmount <= maxContributionAmount, "Contribution too high");
