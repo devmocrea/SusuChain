@@ -43,6 +43,7 @@ contract SusuChain {
 
     function contribute(uint256 circleId) external payable {
         Circle storage circle = circles[circleId];
+        // Ensure the circle is active and accepting contributions
         require(circle.active, "Circle is not active");
         
         // MiniPay Gas Estimation Bypass:
