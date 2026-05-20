@@ -170,16 +170,27 @@ export default function Home() {
 
   // --- Stacks Handlers ---
   const handleStacksCreate = () => {
-    const microSTX = Math.floor(parseFloat(sContribution) * 1_000_000);
-    const memberList = sMembers
-      .split("\n")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    callCreateCircle(sName, microSTX, memberList, (data: any) => {
-      setSStatus(
-        `✅ TX: ${data.txId} — link: https://explorer.hiro.so/txid/${data.txId}`
-      );
-    });
+    try {
+      const microSTX = Math.floor(parseFloat(sContribution) * 1_000_000);
+      const memberList = sMembers
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      callCreateCircle(sName, microSTX, memberList, (data: any) => {
+        setSStatus(
+          `✅ TX: ${data.txId} — link: https://explorer.hiro.so/txid/${data.txId}`
+        );
+      });
+    } catch (err: any) {
+      setSStatus(`❌ ${err.message}`);
+      captureWeb3Error(err, {
+        chain: "stacks",
+        contractAddress: STACKS_CONTRACT_ADDRESS,
+        functionName: "create-circle",
+        arguments: [sName, sContribution, sMembers],
+        account: stacksAddress || undefined,
+      });
+    }
   };
 
   const handleStacksContribute = () => {
