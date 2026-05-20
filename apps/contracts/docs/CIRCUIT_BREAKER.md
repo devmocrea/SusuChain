@@ -39,3 +39,7 @@ The Hardhat/Viem test suite verifies:
 - Failure of `createCircle` and `contribute` when paused.
 - Success of `createCircle` and `contribute` when unpaused.
 - Proper event emission validation for `Paused` and `Unpaused`.
+
+## Walkthrough Status
+The integration is fully implemented and all 34 tests pass successfully.
+
