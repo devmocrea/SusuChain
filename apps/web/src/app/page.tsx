@@ -211,9 +211,20 @@ export default function Home() {
   };
 
   const handleStacksPayout = () => {
-    callTriggerPayout(parseInt(sPayoutCircleId), (data: any) => {
-      setSPayoutStatus(`✅ TX: ${data.txId}`);
-    });
+    try {
+      callTriggerPayout(parseInt(sPayoutCircleId), (data: any) => {
+        setSPayoutStatus(`✅ TX: ${data.txId}`);
+      });
+    } catch (err: any) {
+      setSPayoutStatus(`❌ ${err.message}`);
+      captureWeb3Error(err, {
+        chain: "stacks",
+        contractAddress: STACKS_CONTRACT_ADDRESS,
+        functionName: "trigger-payout",
+        arguments: [sPayoutCircleId],
+        account: stacksAddress || undefined,
+      });
+    }
   };
 
   return (
