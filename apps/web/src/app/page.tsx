@@ -157,6 +157,14 @@ export default function Home() {
       setContributeStatus(`✅ TX: ${hash}`);
     } catch (err: any) {
       setContributeStatus(`❌ ${err.message}`);
+      captureWeb3Error(err, {
+        chain: "celo",
+        contractAddress: SUSUCHAIN_CELO_ADDRESS,
+        functionName: "contribute",
+        arguments: [circleId],
+        account: address || undefined,
+        value: circleDetails ? circleDetails[1]?.toString() : undefined,
+      });
     }
   };
 
