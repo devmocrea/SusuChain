@@ -45,5 +45,19 @@ describe("SusuChain Dynamic Limits", function () {
         ])
       ).to.be.rejectedWith("Contribution too low");
     });
+
+    it("Should fail to create circle if contribution is above maximum", async function () {
+      const { susuChain, member1, member2 } = await loadFixture(deploySusuChainFixture);
+      const members = [getAddress(member1.account.address), getAddress(member2.account.address)];
+
+      await expect(
+        susuChain.write.createCircle([
+          "Above Limit Circle",
+          parseEther("10001"), // Above 10,000 CELO
+          30n,
+          members,
+        ])
+      ).to.be.rejectedWith("Contribution too high");
+    });
   });
 });
