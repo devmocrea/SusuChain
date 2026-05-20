@@ -175,5 +175,48 @@ describe("SusuChain", function () {
       expect(circle[4]).to.equal(2n);
       expect(circle[6]).to.be.false;
     });
+
+    it("Should revert contributions to an inactive circle", async function () {
+      const { susuChain, member1, member2 } = await loadFixture(
+        deploySusuChainFixture
+      );
+
+      const m1Addr = getAddress(member1.account.address);
+      const m2Addr = getAddress(member2.account.address);
+      const members = [m1Addr, m2Addr];
+
+      await susuChain.write.createCircle([
+        "Susu Circle",
+        parseEther("1"),
+        30n,
+        members,
+      ]);
+
+      const susuM1 = await hre.viem.getContractAt(
+        "SusuChain",
+        susuChain.address,
+        { client: { wallet: member1 } }
+      );
+      const susuM2 = await hre.viem.getContractAt(
+        "SusuChain",
+        susuChain.address,
+        { client: { wallet: member2 } }
+      );
+
+      // Complete all rounds to make circle inactive
+      await susuM1.write.contribute([0n], { value: parseEther("1") });
+      await susuM2.write.contribute([0n], { value: parseEther("1") });
+
+      await susuM1.write.contribute([0n], { value: parseEther("1") });
+      await susuM2.write.contribute([0n], { value: parseEther("1") });
+
+      const circle = await susuChain.read.getCircle([0n]);
+      expect(circle[6]).to.be.false; // Should be inactive
+
+      // Attempting to contribute further should fail
+      await expect(
+        susuM1.write.contribute([0n], { value: parseEther("1") })
+      ).to.be.rejectedWith("Circle is not active");
+    });
   });
 });
