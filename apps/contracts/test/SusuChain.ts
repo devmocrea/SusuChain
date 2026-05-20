@@ -30,4 +30,20 @@ describe("SusuChain Dynamic Limits", function () {
       expect(await susuChain.read.maxContributionAmount()).to.equal(parseEther("10000"));
     });
   });
+
+  describe("Circle Creation Limits", function () {
+    it("Should fail to create circle if contribution is below minimum", async function () {
+      const { susuChain, member1, member2 } = await loadFixture(deploySusuChainFixture);
+      const members = [getAddress(member1.account.address), getAddress(member2.account.address)];
+
+      await expect(
+        susuChain.write.createCircle([
+          "Below Limit Circle",
+          parseEther("0.0005"), // Below 0.001 CELO
+          30n,
+          members,
+        ])
+      ).to.be.rejectedWith("Contribution too low");
+    });
+  });
 });
