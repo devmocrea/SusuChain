@@ -18,6 +18,7 @@ contract SusuChain {
     mapping(uint256 => uint256) public roundBalance;
     uint256 public circleCount;
 
+    address public owner;
     uint256 public minContributionAmount;
     uint256 public maxContributionAmount;
 
