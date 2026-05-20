@@ -124,6 +124,7 @@ contract SusuChain is Pausable {
             emit PayoutSent(circleId, recipient, amount, round);
         } else {
             pendingWithdrawals[recipient] += amount;
+            emit PayoutFailed(circleId, recipient, amount, round);
         }
     }
 
