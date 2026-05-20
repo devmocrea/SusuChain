@@ -59,5 +59,19 @@ describe("SusuChain Dynamic Limits", function () {
         ])
       ).to.be.rejectedWith("Contribution too high");
     });
+
+    it("Should successfully create circle with valid contribution", async function () {
+      const { susuChain, member1, member2 } = await loadFixture(deploySusuChainFixture);
+      const members = [getAddress(member1.account.address), getAddress(member2.account.address)];
+
+      await expect(
+        susuChain.write.createCircle([
+          "Valid Circle",
+          parseEther("10"), // Within range [0.001, 10000]
+          30n,
+          members,
+        ])
+      ).to.be.fulfilled;
+    });
   });
 });
