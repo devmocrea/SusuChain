@@ -468,5 +468,19 @@ describe("SusuChain", function () {
       expect(events).to.have.lengthOf(1);
       expect(getAddress(events[0].args.account!)).to.equal(getAddress(owner.account.address));
     });
+
+    it("Should emit an Unpaused event when unpaused", async function () {
+      const { susuChain, publicClient, owner } = await loadFixture(deploySusuChainFixture);
+
+      await susuChain.write.pause();
+      expect(await susuChain.read.paused()).to.be.true;
+
+      const hash = await susuChain.write.unpause();
+      await publicClient.waitForTransactionReceipt({ hash });
+
+      const events = await susuChain.getEvents.Unpaused();
+      expect(events).to.have.lengthOf(1);
+      expect(getAddress(events[0].args.account!)).to.equal(getAddress(owner.account.address));
+    });
   });
 });
