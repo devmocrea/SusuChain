@@ -6,11 +6,23 @@ interface ISusuChain {
 }
 
 contract RevertingRecipient {
+    bool public shouldRevert = true;
+
     receive() external payable {
-        revert("Revert recipient always reverts");
+        if (shouldRevert) {
+            revert("Revert recipient always reverts");
+        }
+    }
+
+    function setShouldRevert(bool _shouldRevert) external {
+        shouldRevert = _shouldRevert;
     }
 
     function callContribute(address susu, uint256 circleId) external payable {
         ISusuChain(susu).contribute{value: msg.value}(circleId);
+    }
+
+    function callWithdraw(address susu) external {
+        ISusuChain(susu).withdraw();
     }
 }
