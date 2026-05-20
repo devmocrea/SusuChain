@@ -429,5 +429,33 @@ describe("SusuChain", function () {
         ])
       ).to.be.fulfilled;
     });
+
+    it("Should allow contributions when unpaused", async function () {
+      const { susuChain, member1, member2 } = await loadFixture(deploySusuChainFixture);
+      const members = [getAddress(member1.account.address), getAddress(member2.account.address)];
+
+      await susuChain.write.createCircle([
+        "Circle For Contribution Unpause Test",
+        parseEther("1"),
+        30n,
+        members,
+      ]);
+
+      await susuChain.write.pause();
+      expect(await susuChain.read.paused()).to.be.true;
+
+      await susuChain.write.unpause();
+      expect(await susuChain.read.paused()).to.be.false;
+
+      const susuM1 = await hre.viem.getContractAt(
+        "SusuChain",
+        susuChain.address,
+        { client: { wallet: member1 } }
+      );
+
+      await expect(
+        susuM1.write.contribute([0n], { value: parseEther("1") })
+      ).to.be.fulfilled;
+    });
   });
 });
