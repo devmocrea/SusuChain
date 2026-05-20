@@ -75,7 +75,7 @@ contract SusuChain is Pausable {
         emit CircleCreated(id, msg.sender, name);
     }
 
-    function contribute(uint256 circleId) external payable {
+    function contribute(uint256 circleId) external payable whenNotPaused {
         Circle storage circle = circles[circleId];
         // Ensure the circle is active and accepting contributions
         require(circle.active, "Circle is not active");
