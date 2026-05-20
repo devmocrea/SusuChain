@@ -457,5 +457,16 @@ describe("SusuChain", function () {
         susuM1.write.contribute([0n], { value: parseEther("1") })
       ).to.be.fulfilled;
     });
+
+    it("Should emit a Paused event when paused", async function () {
+      const { susuChain, publicClient, owner } = await loadFixture(deploySusuChainFixture);
+
+      const hash = await susuChain.write.pause();
+      await publicClient.waitForTransactionReceipt({ hash });
+
+      const events = await susuChain.getEvents.Paused();
+      expect(events).to.have.lengthOf(1);
+      expect(getAddress(events[0].args.account!)).to.equal(getAddress(owner.account.address));
+    });
   });
 });
