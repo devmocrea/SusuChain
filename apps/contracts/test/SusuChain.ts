@@ -561,5 +561,33 @@ describe("SusuChain", function () {
       expect(await susuChain.read.roundBalance([0n])).to.equal(0n); // balance reset to 0
       expect(circleRound0[6]).to.be.true; // remains active for next round
     });
+
+    it("Should keep the circle active when direct payout fails in earlier rounds", async function () {
+      const { susuChain, member2, member3 } = await loadFixture(deploySusuChainFixture);
+      const revertingContract = await hre.viem.deployContract("RevertingRecipient");
+      const revAddr = getAddress(revertingContract.address);
+      const m2Addr = getAddress(member2.account.address);
+      const m3Addr = getAddress(member3.account.address);
+      const members = [revAddr, m2Addr, m3Addr];
+
+      await susuChain.write.createCircle(["Multi-round Circle", parseEther("1"), 30n, members]);
+
+      // Round 0
+      await revertingContract.write.callContribute([susuChain.address, 0n], { value: parseEther("1") });
+      const susuM2 = await hre.viem.getContractAt("SusuChain", susuChain.address, { client: { wallet: member2 } });
+      await susuM2.write.contribute([0n], { value: parseEther("1") });
+      const susuM3 = await hre.viem.getContractAt("SusuChain", susuChain.address, { client: { wallet: member3 } });
+      await susuM3.write.contribute([0n], { value: parseEther("1") });
+
+      // Round 0 recipient is revAddr. Payout fails. Verify circle is active.
+      let circle = await susuChain.read.getCircle([0n]);
+      expect(circle[6]).to.be.true;
+      expect(circle[4]).to.equal(1n);
+
+      // Round 1 contribution should be allowed (proves circle is still active)
+      await revertingContract.write.callContribute([susuChain.address, 0n], { value: parseEther("1") });
+      circle = await susuChain.read.getCircle([0n]);
+      expect(circle[6]).to.be.true;
+    });
   });
 });
