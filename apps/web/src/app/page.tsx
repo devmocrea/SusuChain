@@ -20,7 +20,9 @@ import {
   callCreateCircle,
   callContribute,
   callTriggerPayout,
+  STACKS_CONTRACT_ADDRESS,
 } from "@/lib/susuchain-stacks";
+import { captureWeb3Error } from "@/lib/sentry-web3";
 
 const CELO_ACCENT = "#FCFF52";
 const STACKS_ACCENT = "#fc6432";
