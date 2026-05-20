@@ -74,4 +74,36 @@ describe("SusuChain Dynamic Limits", function () {
       ).to.be.fulfilled;
     });
   });
+
+  describe("Owner Limits Modification", function () {
+    it("Should allow the owner to update contribution limits", async function () {
+      const { susuChain } = await loadFixture(deploySusuChainFixture);
+
+      await susuChain.write.setContributionLimits([parseEther("0.1"), parseEther("100")]);
+      expect(await susuChain.read.minContributionAmount()).to.equal(parseEther("0.1"));
+      expect(await susuChain.read.maxContributionAmount()).to.equal(parseEther("100"));
+    });
+
+    it("Should reject non-owners from updating contribution limits", async function () {
+      const { susuChain, nonOwner } = await loadFixture(deploySusuChainFixture);
+
+      const susuNon = await hre.viem.getContractAt(
+        "SusuChain",
+        susuChain.address,
+        { client: { wallet: nonOwner } }
+      );
+
+      await expect(
+        susuNon.write.setContributionLimits([parseEther("0.1"), parseEther("100")])
+      ).to.be.rejectedWith("Only the owner can call this function");
+    });
+
+    it("Should reject invalid bounds (min > max)", async function () {
+      const { susuChain } = await loadFixture(deploySusuChainFixture);
+
+      await expect(
+        susuChain.write.setContributionLimits([parseEther("10"), parseEther("5")])
+      ).to.be.rejectedWith("Min limit must be <= max limit");
+    });
+  });
 });
