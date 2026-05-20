@@ -27,6 +27,17 @@ contract SusuChain {
     event PayoutSent(uint256 indexed circleId, address indexed recipient, uint256 amount, uint256 round);
     event ContributionLimitsUpdated(uint256 minAmount, uint256 maxAmount);
 
+    constructor() {
+        owner = msg.sender;
+        minContributionAmount = 0.001 ether; // 0.001 CELO
+        maxContributionAmount = 10000 ether; // 10,000 CELO
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only the owner can call this function");
+        _;
+    }
+
     function createCircle(
         string memory name,
         uint256 contributionAmount,
