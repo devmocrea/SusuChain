@@ -38,6 +38,13 @@ contract SusuChain {
         _;
     }
 
+    function setContributionLimits(uint256 _minAmount, uint256 _maxAmount) external onlyOwner {
+        require(_minAmount <= _maxAmount, "Min limit must be <= max limit");
+        minContributionAmount = _minAmount;
+        maxContributionAmount = _maxAmount;
+        emit ContributionLimitsUpdated(_minAmount, _maxAmount);
+    }
+
     function createCircle(
         string memory name,
         uint256 contributionAmount,
