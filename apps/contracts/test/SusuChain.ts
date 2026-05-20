@@ -18,4 +18,16 @@ describe("SusuChain Dynamic Limits", function () {
       publicClient,
     };
   }
+
+  describe("Deployment", function () {
+    it("Should correctly set owner and initial limits", async function () {
+      const { susuChain, owner } = await loadFixture(deploySusuChainFixture);
+
+      expect(await susuChain.read.owner()).to.equal(
+        getAddress(owner.account.address)
+      );
+      expect(await susuChain.read.minContributionAmount()).to.equal(parseEther("0.001"));
+      expect(await susuChain.read.maxContributionAmount()).to.equal(parseEther("10000"));
+    });
+  });
 });
