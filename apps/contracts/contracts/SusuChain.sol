@@ -33,6 +33,11 @@ contract SusuChain {
         maxContributionAmount = 10000 ether;
     }
 
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only the owner can call this function");
+        _;
+    }
+
     function createCircle(
         string memory name,
         uint256 contributionAmount,
