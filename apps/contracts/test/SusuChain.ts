@@ -483,4 +483,8 @@ describe("SusuChain", function () {
       expect(getAddress(events[0].args.account!)).to.equal(getAddress(owner.account.address));
     });
   });
+
+  describe("Secure EVM Payout Fallback", function () {
+    // Skeleton for secure payout fallback suite
+  });
 });
