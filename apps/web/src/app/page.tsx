@@ -194,9 +194,20 @@ export default function Home() {
   };
 
   const handleStacksContribute = () => {
-    callContribute(parseInt(sCircleId), (data: any) => {
-      setSContributeStatus(`✅ TX: ${data.txId}`);
-    });
+    try {
+      callContribute(parseInt(sCircleId), (data: any) => {
+        setSContributeStatus(`✅ TX: ${data.txId}`);
+      });
+    } catch (err: any) {
+      setSContributeStatus(`❌ ${err.message}`);
+      captureWeb3Error(err, {
+        chain: "stacks",
+        contractAddress: STACKS_CONTRACT_ADDRESS,
+        functionName: "contribute",
+        arguments: [sCircleId],
+        account: stacksAddress || undefined,
+      });
+    }
   };
 
   const handleStacksPayout = () => {
