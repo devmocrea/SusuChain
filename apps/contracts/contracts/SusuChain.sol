@@ -25,6 +25,7 @@ contract SusuChain {
     event CircleCreated(uint256 indexed circleId, address indexed creator, string name);
     event ContributionMade(uint256 indexed circleId, address indexed contributor, uint256 amount, uint256 round);
     event PayoutSent(uint256 indexed circleId, address indexed recipient, uint256 amount, uint256 round);
+    event ContributionLimitsUpdated(uint256 minAmount, uint256 maxAmount);
 
     function createCircle(
         string memory name,
