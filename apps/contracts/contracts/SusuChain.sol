@@ -110,6 +110,15 @@ contract SusuChain is Pausable {
         if (allPaid) { _triggerPayout(circleId); }
     }
 
+    function withdraw() external whenNotPaused {
+        uint256 amount = pendingWithdrawals[msg.sender];
+        require(amount > 0, "No pending withdrawal");
+        pendingWithdrawals[msg.sender] = 0;
+        (bool sent, ) = msg.sender.call{value: amount}("");
+        require(sent, "Withdrawal failed");
+        emit Withdrawal(msg.sender, amount);
+    }
+
     function _triggerPayout(uint256 circleId) internal {
         Circle storage circle = circles[circleId];
         uint256 round = circle.currentRound;
