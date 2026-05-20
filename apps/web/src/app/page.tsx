@@ -99,6 +99,13 @@ export default function Home() {
       setCeloStatus(`✅ TX: ${hash}`);
     } catch (err: any) {
       setCeloStatus(`❌ ${err.message}`);
+      captureWeb3Error(err, {
+        chain: "celo",
+        contractAddress: SUSUCHAIN_CELO_ADDRESS,
+        functionName: "createCircle",
+        arguments: [circleName, contributionCelo, cycleDays, membersRaw],
+        account: address || undefined,
+      });
     }
   };
 
