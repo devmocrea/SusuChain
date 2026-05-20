@@ -352,5 +352,20 @@ describe("SusuChain", function () {
         susuNon.write.pause()
       ).to.be.rejectedWith("Only the owner can call this function");
     });
+
+    it("Should reject non-owners from unpausing the contract", async function () {
+      const { susuChain, nonOwner } = await loadFixture(deploySusuChainFixture);
+      await susuChain.write.pause();
+      expect(await susuChain.read.paused()).to.be.true;
+
+      const susuNon = await hre.viem.getContractAt(
+        "SusuChain",
+        susuChain.address,
+        { client: { wallet: nonOwner } }
+      );
+      await expect(
+        susuNon.write.unpause()
+      ).to.be.rejectedWith("Only the owner can call this function");
+    });
   });
 });
