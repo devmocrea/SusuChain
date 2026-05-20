@@ -648,5 +648,30 @@ describe("SusuChain", function () {
         susuM1.write.withdraw()
       ).to.be.rejectedWith("No pending withdrawal");
     });
+
+    it("Should emit a Withdrawal event upon a successful withdrawal", async function () {
+      const { susuChain, member2, publicClient } = await loadFixture(deploySusuChainFixture);
+      const revertingContract = await hre.viem.deployContract("RevertingRecipient");
+      const revAddr = getAddress(revertingContract.address);
+      const m2Addr = getAddress(member2.account.address);
+      const members = [revAddr, m2Addr];
+
+      await susuChain.write.createCircle(["Withdrawal Event Circle", parseEther("1"), 30n, members]);
+
+      // Trigger failed payout to revertingContract
+      await revertingContract.write.callContribute([susuChain.address, 0n], { value: parseEther("1") });
+      const susuM2 = await hre.viem.getContractAt("SusuChain", susuChain.address, { client: { wallet: member2 } });
+      await susuM2.write.contribute([0n], { value: parseEther("1") });
+
+      // Set contract to accept transfer and pull balance
+      await revertingContract.write.setShouldRevert([false]);
+      const hash = await revertingContract.write.callWithdraw([susuChain.address]);
+      await publicClient.waitForTransactionReceipt({ hash });
+
+      const events = await susuChain.getEvents.Withdrawal();
+      expect(events).to.have.lengthOf(1);
+      expect(getAddress(events[0].args.recipient!)).to.equal(revAddr);
+      expect(events[0].args.amount).to.equal(parseEther("2"));
+    });
   });
 });

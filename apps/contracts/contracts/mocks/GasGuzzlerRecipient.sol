@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 interface ISusuChain {
     function contribute(uint256 circleId) external payable;
+    function withdraw() external;
 }
 
 contract GasGuzzlerRecipient {
