@@ -539,5 +539,27 @@ describe("SusuChain", function () {
 
       expect(await susuChain.read.pendingWithdrawals([guzzlerAddr])).to.equal(parseEther("2"));
     });
+
+    it("Should continue circle round progression when direct payout fails", async function () {
+      const { susuChain, member2 } = await loadFixture(deploySusuChainFixture);
+      const revertingContract = await hre.viem.deployContract("RevertingRecipient");
+      const revAddr = getAddress(revertingContract.address);
+      const m2Addr = getAddress(member2.account.address);
+      const members = [revAddr, m2Addr];
+
+      await susuChain.write.createCircle(["Progressing Circle", parseEther("1"), 30n, members]);
+
+      // Round 0
+      await revertingContract.write.callContribute([susuChain.address, 0n], { value: parseEther("1") });
+
+      const susuM2 = await hre.viem.getContractAt("SusuChain", susuChain.address, { client: { wallet: member2 } });
+      await susuM2.write.contribute([0n], { value: parseEther("1") });
+
+      // Verify progression
+      const circleRound0 = await susuChain.read.getCircle([0n]);
+      expect(circleRound0[4]).to.equal(1n); // round progresses to 1
+      expect(await susuChain.read.roundBalance([0n])).to.equal(0n); // balance reset to 0
+      expect(circleRound0[6]).to.be.true; // remains active for next round
+    });
   });
 });
