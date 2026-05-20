@@ -320,4 +320,8 @@ describe("SusuChain", function () {
       ).to.be.rejectedWith("Circle is not active");
     });
   });
+
+  describe("Emergency Circuit Breaker", function () {
+    // Harness and fixture tests setup placeholder
+  });
 });
