@@ -384,5 +384,30 @@ describe("SusuChain", function () {
         ])
       ).to.be.rejectedWith("EnforcedPause()");
     });
+
+    it("Should block contributions when paused", async function () {
+      const { susuChain, member1, member2 } = await loadFixture(deploySusuChainFixture);
+      const members = [getAddress(member1.account.address), getAddress(member2.account.address)];
+
+      await susuChain.write.createCircle([
+        "Circle For Contribution Pause Test",
+        parseEther("1"),
+        30n,
+        members,
+      ]);
+
+      await susuChain.write.pause();
+      expect(await susuChain.read.paused()).to.be.true;
+
+      const susuM1 = await hre.viem.getContractAt(
+        "SusuChain",
+        susuChain.address,
+        { client: { wallet: member1 } }
+      );
+
+      await expect(
+        susuM1.write.contribute([0n], { value: parseEther("1") })
+      ).to.be.rejectedWith("EnforcedPause()");
+    });
   });
 });
