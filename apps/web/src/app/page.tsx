@@ -20,7 +20,9 @@ import {
   callCreateCircle,
   callContribute,
   callTriggerPayout,
+  STACKS_CONTRACT_ADDRESS,
 } from "@/lib/susuchain-stacks";
+import { captureWeb3Error } from "@/lib/sentry-web3";
 
 const CELO_ACCENT = "#FCFF52";
 const STACKS_ACCENT = "#fc6432";
@@ -97,6 +99,13 @@ export default function Home() {
       setCeloStatus(`✅ TX: ${hash}`);
     } catch (err: any) {
       setCeloStatus(`❌ ${err.message}`);
+      captureWeb3Error(err, {
+        chain: "celo",
+        contractAddress: SUSUCHAIN_CELO_ADDRESS,
+        functionName: "createCircle",
+        arguments: [circleName, contributionCelo, cycleDays, membersRaw],
+        account: address || undefined,
+      });
     }
   };
 
@@ -114,6 +123,13 @@ export default function Home() {
     } catch (err: any) {
       setContributeStatus(`❌ ${err.message}`);
       setCircleDetails(null);
+      captureWeb3Error(err, {
+        chain: "celo",
+        contractAddress: SUSUCHAIN_CELO_ADDRESS,
+        functionName: "getCircle",
+        arguments: [circleId],
+        account: address || undefined,
+      });
     }
   };
 
@@ -141,33 +157,74 @@ export default function Home() {
       setContributeStatus(`✅ TX: ${hash}`);
     } catch (err: any) {
       setContributeStatus(`❌ ${err.message}`);
+      captureWeb3Error(err, {
+        chain: "celo",
+        contractAddress: SUSUCHAIN_CELO_ADDRESS,
+        functionName: "contribute",
+        arguments: [circleId],
+        account: address || undefined,
+        value: circleDetails ? circleDetails[1]?.toString() : undefined,
+      });
     }
   };
 
   // --- Stacks Handlers ---
   const handleStacksCreate = () => {
-    const microSTX = Math.floor(parseFloat(sContribution) * 1_000_000);
-    const memberList = sMembers
-      .split("\n")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    callCreateCircle(sName, microSTX, memberList, (data: any) => {
-      setSStatus(
-        `✅ TX: ${data.txId} — link: https://explorer.hiro.so/txid/${data.txId}`
-      );
-    });
+    try {
+      const microSTX = Math.floor(parseFloat(sContribution) * 1_000_000);
+      const memberList = sMembers
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      callCreateCircle(sName, microSTX, memberList, (data: any) => {
+        setSStatus(
+          `✅ TX: ${data.txId} — link: https://explorer.hiro.so/txid/${data.txId}`
+        );
+      });
+    } catch (err: any) {
+      setSStatus(`❌ ${err.message}`);
+      captureWeb3Error(err, {
+        chain: "stacks",
+        contractAddress: STACKS_CONTRACT_ADDRESS,
+        functionName: "create-circle",
+        arguments: [sName, sContribution, sMembers],
+        account: stacksAddress || undefined,
+      });
+    }
   };
 
   const handleStacksContribute = () => {
-    callContribute(parseInt(sCircleId), (data: any) => {
-      setSContributeStatus(`✅ TX: ${data.txId}`);
-    });
+    try {
+      callContribute(parseInt(sCircleId), (data: any) => {
+        setSContributeStatus(`✅ TX: ${data.txId}`);
+      });
+    } catch (err: any) {
+      setSContributeStatus(`❌ ${err.message}`);
+      captureWeb3Error(err, {
+        chain: "stacks",
+        contractAddress: STACKS_CONTRACT_ADDRESS,
+        functionName: "contribute",
+        arguments: [sCircleId],
+        account: stacksAddress || undefined,
+      });
+    }
   };
 
   const handleStacksPayout = () => {
-    callTriggerPayout(parseInt(sPayoutCircleId), (data: any) => {
-      setSPayoutStatus(`✅ TX: ${data.txId}`);
-    });
+    try {
+      callTriggerPayout(parseInt(sPayoutCircleId), (data: any) => {
+        setSPayoutStatus(`✅ TX: ${data.txId}`);
+      });
+    } catch (err: any) {
+      setSPayoutStatus(`❌ ${err.message}`);
+      captureWeb3Error(err, {
+        chain: "stacks",
+        contractAddress: STACKS_CONTRACT_ADDRESS,
+        functionName: "trigger-payout",
+        arguments: [sPayoutCircleId],
+        account: stacksAddress || undefined,
+      });
+    }
   };
 
   return (
