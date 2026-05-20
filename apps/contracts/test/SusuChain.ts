@@ -505,5 +505,22 @@ describe("SusuChain", function () {
       expect(balanceAfter - balanceBefore).to.equal(parseEther("2"));
       expect(await susuChain.read.pendingWithdrawals([m1Addr])).to.equal(0n);
     });
+
+    it("Should fail payout gracefully for a reverting contract and store it in pendingWithdrawals", async function () {
+      const { susuChain, member2 } = await loadFixture(deploySusuChainFixture);
+      const revertingContract = await hre.viem.deployContract("RevertingRecipient");
+      const revAddr = getAddress(revertingContract.address);
+      const m2Addr = getAddress(member2.account.address);
+      const members = [revAddr, m2Addr];
+
+      await susuChain.write.createCircle(["Reverting Payout Circle", parseEther("1"), 30n, members]);
+
+      await revertingContract.write.callContribute([susuChain.address, 0n], { value: parseEther("1") });
+
+      const susuM2 = await hre.viem.getContractAt("SusuChain", susuChain.address, { client: { wallet: member2 } });
+      await susuM2.write.contribute([0n], { value: parseEther("1") });
+
+      expect(await susuChain.read.pendingWithdrawals([revAddr])).to.equal(parseEther("2"));
+    });
   });
 });
