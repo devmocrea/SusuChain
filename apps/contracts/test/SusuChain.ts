@@ -332,5 +332,13 @@ describe("SusuChain", function () {
       await susuChain.write.pause();
       expect(await susuChain.read.paused()).to.be.true;
     });
+
+    it("Should allow the owner to unpause the contract", async function () {
+      const { susuChain } = await loadFixture(deploySusuChainFixture);
+      await susuChain.write.pause();
+      expect(await susuChain.read.paused()).to.be.true;
+      await susuChain.write.unpause();
+      expect(await susuChain.read.paused()).to.be.false;
+    });
   });
 });
