@@ -47,6 +47,10 @@ contract SusuChain is Pausable {
         emit ContributionLimitsUpdated(_minAmount, _maxAmount);
     }
 
+    function pause() external onlyOwner {
+        _pause();
+    }
+
     function createCircle(
         string memory name,
         uint256 contributionAmount,
