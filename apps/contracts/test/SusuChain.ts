@@ -589,5 +589,29 @@ describe("SusuChain", function () {
       circle = await susuChain.read.getCircle([0n]);
       expect(circle[6]).to.be.true;
     });
+
+    it("Should deactivate the circle when payout fails in the final round", async function () {
+      const { susuChain, member2 } = await loadFixture(deploySusuChainFixture);
+      const revertingContract = await hre.viem.deployContract("RevertingRecipient");
+      const revAddr = getAddress(revertingContract.address);
+      const m2Addr = getAddress(member2.account.address);
+      const members = [revAddr, m2Addr]; // 2 rounds total
+
+      await susuChain.write.createCircle(["Deactivating Circle", parseEther("1"), 30n, members]);
+
+      // Round 0: Payout to revertingContract (fails)
+      await revertingContract.write.callContribute([susuChain.address, 0n], { value: parseEther("1") });
+      const susuM2 = await hre.viem.getContractAt("SusuChain", susuChain.address, { client: { wallet: member2 } });
+      await susuM2.write.contribute([0n], { value: parseEther("1") });
+
+      // Round 1: Payout to member2 (succeeds)
+      await revertingContract.write.callContribute([susuChain.address, 0n], { value: parseEther("1") });
+      await susuM2.write.contribute([0n], { value: parseEther("1") });
+
+      // After round 1 completes (currentRound becomes 2 = members.length), circle should be inactive.
+      const circle = await susuChain.read.getCircle([0n]);
+      expect(circle[4]).to.equal(2n);
+      expect(circle[6]).to.be.false;
+    });
   });
 });
