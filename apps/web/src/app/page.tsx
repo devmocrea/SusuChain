@@ -123,6 +123,13 @@ export default function Home() {
     } catch (err: any) {
       setContributeStatus(`❌ ${err.message}`);
       setCircleDetails(null);
+      captureWeb3Error(err, {
+        chain: "celo",
+        contractAddress: SUSUCHAIN_CELO_ADDRESS,
+        functionName: "getCircle",
+        arguments: [circleId],
+        account: address || undefined,
+      });
     }
   };
 
