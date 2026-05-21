@@ -696,4 +696,26 @@ describe("SusuChain", function () {
       expect(events[0].args.amount).to.equal(parseEther("2"));
     });
   });
+
+  describe("Late Payment Penalties and Grace Periods", function () {
+    it("Should successfully contribute on-time with penalty configurations active", async function () {
+      const { susuChain, member1, member2 } = await loadFixture(deploySusuChainFixture);
+      const members = [getAddress(member1.account.address), getAddress(member2.account.address)];
+
+      await susuChain.write.createCircle([
+        "Penalty Circle",
+        parseEther("1"),
+        7n,
+        2n,
+        parseEther("0.5"),
+        members,
+      ]);
+
+      const susuM1 = await hre.viem.getContractAt("SusuChain", susuChain.address, { client: { wallet: member1 } });
+      
+      await expect(
+        susuM1.write.contribute([0n], { value: parseEther("1") })
+      ).to.be.fulfilled;
+    });
+  });
 });
