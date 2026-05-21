@@ -520,5 +520,24 @@ describe("SusuChain", function () {
         ])
       ).to.be.rejectedWith("Duplicate member addresses not allowed");
     });
+
+    it("Should fail to create circle if duplicate members exist adjacent in the middle", async function () {
+      const { susuChain, member1, member2, member3 } = await loadFixture(deploySusuChainFixture);
+      const m1Addr = getAddress(member1.account.address);
+      const m2Addr = getAddress(member2.account.address);
+      const m3Addr = getAddress(member3.account.address);
+      const members = [m1Addr, m2Addr, m2Addr, m3Addr];
+
+      await expect(
+        susuChain.write.createCircle([
+          "Duplicate Adjacent Middle Circle",
+          parseEther("1"),
+          30n,
+          2n,
+          0n,
+          members,
+        ])
+      ).to.be.rejectedWith("Duplicate member addresses not allowed");
+    });
   });
 });
