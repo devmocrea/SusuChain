@@ -60,6 +60,8 @@
   (let ((circle-id (var-get circle-count)))
     (asserts! (>= (len members) u2) (err u1))
     (asserts! (> contribution u0) (err u2))
+    (asserts! (<= contribution (/ u18446744073709551615 (len members))) (err u3))
+    (asserts! (< circle-id u18446744073709551615) (err u4))
     (map-set circles
       { circle-id: circle-id }
       {
@@ -87,6 +89,7 @@
     (asserts! (get active circle) (err u11))
     (asserts! (is-some (index-of (get members circle) tx-sender)) (err u12))
     (asserts! (not (has-member-paid circle-id round tx-sender)) (err u13))
+    (asserts! (<= amount (- u18446744073709551615 bal)) (err u14))
     (try! (stx-transfer? amount tx-sender (as-contract tx-sender)))
     (map-set has-paid
       { circle-id: circle-id, round: round, member: tx-sender }
@@ -112,6 +115,7 @@
   )
     (asserts! (get active circle) (err u23))
     (asserts! (is-eq tx-sender creator) (err u24))
+    (asserts! (< round u18446744073709551615) (err u25))
     (map-set round-balance { circle-id: circle-id } { balance: u0 })
     (map-set circles
       { circle-id: circle-id }
