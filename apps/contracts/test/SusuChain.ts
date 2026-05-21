@@ -601,5 +601,23 @@ describe("SusuChain", function () {
         ])
       ).to.be.rejectedWith("Duplicate member addresses not allowed");
     });
+
+    it("Should successfully create circle with zero duplicate members and standard setup containing four members", async function () {
+      const { susuChain, owner, member1, member2, member3 } = await loadFixture(deploySusuChainFixture);
+      const ownerAddr = getAddress(owner.account.address);
+      const m1Addr = getAddress(member1.account.address);
+      const m2Addr = getAddress(member2.account.address);
+      const m3Addr = getAddress(member3.account.address);
+      const members = [ownerAddr, m1Addr, m2Addr, m3Addr];
+
+      await expect(
+        susuChain.write.createCircle([
+          "Four Unique Members Circle",
+          parseEther("1"),
+          30n,
+          members,
+        ])
+      ).to.be.fulfilled;
+    });
   });
 });
