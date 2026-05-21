@@ -152,11 +152,15 @@ contract SusuChain is Pausable {
         address[] memory members,
         uint256 currentRound,
         uint256 lastPayout,
-        bool active
+        bool active,
+        uint256 roundDuration,
+        uint256 gracePeriod,
+        uint256 penaltyFee
     ) {
         Circle storage c = circles[circleId];
         return (c.name, c.contributionAmount, c.cycleDuration, c.members,
-                c.currentRound, c.lastPayout, c.active);
+                c.currentRound, c.lastPayout, c.active, c.roundDuration,
+                c.gracePeriod, c.penaltyFee);
     }
 
     function isMember(uint256 circleId, address user) external view returns (bool) {
