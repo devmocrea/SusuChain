@@ -132,4 +132,21 @@ describe("susuchain tests", () => {
     expect(res2.result).toBeOk(Cl.uint(1));
     expect(simnet.callReadOnlyFn("susuchain", "get-circle-count", [], wallet1).result).toBeUint(2);
   });
+
+  it("rejects circle creation with an overflow-prone contribution amount", () => {
+    // With 2 members, maximum safe contribution is u18446744073709551615 / 2 = u9223372036854775807
+    // So u9223372036854775808 (max_safe + 1) should fail with (err u3)
+    const overflowContribution = Cl.uint(9223372036854775808n);
+    const { result } = simnet.callPublicFn(
+      "susuchain",
+      "create-circle",
+      [
+        Cl.stringAscii("Overflow Circle"),
+        overflowContribution,
+        Cl.list([Cl.principal(wallet1), Cl.principal(wallet2)])
+      ],
+      wallet1
+    );
+    expect(result).toBeErr(Cl.uint(3));
+  });
 });
