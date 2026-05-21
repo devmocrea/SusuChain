@@ -394,6 +394,8 @@ describe("SusuChain", function () {
           "Circle Under Pause",
           parseEther("1"),
           30n,
+          2n,
+          0n,
           members,
         ])
       ).to.be.rejectedWith("EnforcedPause()");
@@ -407,6 +409,8 @@ describe("SusuChain", function () {
         "Circle For Contribution Pause Test",
         parseEther("1"),
         30n,
+        2n,
+        0n,
         members,
       ]);
 
@@ -439,6 +443,8 @@ describe("SusuChain", function () {
           "Circle Under Unpause",
           parseEther("1"),
           30n,
+          2n,
+          0n,
           members,
         ])
       ).to.be.fulfilled;
@@ -452,6 +458,8 @@ describe("SusuChain", function () {
         "Circle For Contribution Unpause Test",
         parseEther("1"),
         30n,
+        2n,
+        0n,
         members,
       ]);
 
