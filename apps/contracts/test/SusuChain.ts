@@ -1,4 +1,4 @@
-import { loadFixture } from "@nomicfoundation/hardhat-toolbox-viem/network-helpers";
+import { loadFixture, time } from "@nomicfoundation/hardhat-toolbox-viem/network-helpers";
 import { expect } from "chai";
 import hre from "hardhat";
 import { getAddress, parseEther } from "viem";
@@ -43,6 +43,8 @@ describe("SusuChain", function () {
           "Below Limit Circle",
           parseEther("0.0005"), // Below 0.001 CELO
           30n,
+          2n,
+          0n,
           members,
         ])
       ).to.be.rejectedWith("Contribution too low");
@@ -57,6 +59,8 @@ describe("SusuChain", function () {
           "Above Limit Circle",
           parseEther("10001"), // Above 10,000 CELO
           30n,
+          2n,
+          0n,
           members,
         ])
       ).to.be.rejectedWith("Contribution too high");
@@ -71,6 +75,8 @@ describe("SusuChain", function () {
           "Valid Circle",
           parseEther("10"), // Within range [0.001, 10000]
           30n,
+          2n,
+          0n,
           members,
         ])
       ).to.be.fulfilled;
@@ -134,6 +140,8 @@ describe("SusuChain", function () {
         "Celo Circle",
         parseEther("1"),
         30n,
+        2n,
+        0n,
         members,
       ]);
 
@@ -156,6 +164,8 @@ describe("SusuChain", function () {
         "Susu Circle",
         parseEther("1"),
         30n,
+        2n,
+        0n,
         members,
       ]);
 
@@ -188,7 +198,7 @@ describe("SusuChain", function () {
         deploySusuChainFixture
       );
       const members = [getAddress(member1.account.address), getAddress(member2.account.address)];
-      await susuChain.write.createCircle(["Susu Circle", parseEther("1"), 30n, members]);
+      await susuChain.write.createCircle(["Susu Circle", parseEther("1"), 30n, 2n, 0n, members]);
       
       const susuNon = await hre.viem.getContractAt(
         "SusuChain",
@@ -203,7 +213,7 @@ describe("SusuChain", function () {
     it("Should reject wrong contribution amounts", async function () {
       const { susuChain, member1, member2 } = await loadFixture(deploySusuChainFixture);
       const members = [getAddress(member1.account.address), getAddress(member2.account.address)];
-      await susuChain.write.createCircle(["Susu Circle", parseEther("1"), 30n, members]);
+      await susuChain.write.createCircle(["Susu Circle", parseEther("1"), 30n, 2n, 0n, members]);
       
       const susuM1 = await hre.viem.getContractAt(
         "SusuChain",
@@ -218,7 +228,7 @@ describe("SusuChain", function () {
     it("Should reject double payments in the same round", async function () {
       const { susuChain, member1, member2 } = await loadFixture(deploySusuChainFixture);
       const members = [getAddress(member1.account.address), getAddress(member2.account.address)];
-      await susuChain.write.createCircle(["Susu Circle", parseEther("1"), 30n, members]);
+      await susuChain.write.createCircle(["Susu Circle", parseEther("1"), 30n, 2n, 0n, members]);
       
       const susuM1 = await hre.viem.getContractAt(
         "SusuChain",
@@ -244,6 +254,8 @@ describe("SusuChain", function () {
         "Susu Circle",
         parseEther("1"),
         30n,
+        2n,
+        0n,
         members,
       ]);
 
@@ -290,6 +302,8 @@ describe("SusuChain", function () {
         "Susu Circle",
         parseEther("1"),
         30n,
+        2n,
+        0n,
         members,
       ]);
 
@@ -380,6 +394,8 @@ describe("SusuChain", function () {
           "Circle Under Pause",
           parseEther("1"),
           30n,
+          2n,
+          0n,
           members,
         ])
       ).to.be.rejectedWith("EnforcedPause()");
@@ -393,6 +409,8 @@ describe("SusuChain", function () {
         "Circle For Contribution Pause Test",
         parseEther("1"),
         30n,
+        2n,
+        0n,
         members,
       ]);
 
@@ -425,6 +443,8 @@ describe("SusuChain", function () {
           "Circle Under Unpause",
           parseEther("1"),
           30n,
+          2n,
+          0n,
           members,
         ])
       ).to.be.fulfilled;
@@ -438,6 +458,8 @@ describe("SusuChain", function () {
         "Circle For Contribution Unpause Test",
         parseEther("1"),
         30n,
+        2n,
+        0n,
         members,
       ]);
 
@@ -491,7 +513,7 @@ describe("SusuChain", function () {
       const m2Addr = getAddress(member2.account.address);
       const members = [m1Addr, m2Addr];
 
-      await susuChain.write.createCircle(["Standard Circle", parseEther("1"), 30n, members]);
+      await susuChain.write.createCircle(["Standard Circle", parseEther("1"), 30n, 2n, 0n, members]);
 
       const susuM1 = await hre.viem.getContractAt("SusuChain", susuChain.address, { client: { wallet: member1 } });
       await susuM1.write.contribute([0n], { value: parseEther("1") });
@@ -513,7 +535,7 @@ describe("SusuChain", function () {
       const m2Addr = getAddress(member2.account.address);
       const members = [revAddr, m2Addr];
 
-      await susuChain.write.createCircle(["Reverting Payout Circle", parseEther("1"), 30n, members]);
+      await susuChain.write.createCircle(["Reverting Payout Circle", parseEther("1"), 30n, 2n, 0n, members]);
 
       await revertingContract.write.callContribute([susuChain.address, 0n], { value: parseEther("1") });
 
@@ -530,7 +552,7 @@ describe("SusuChain", function () {
       const m2Addr = getAddress(member2.account.address);
       const members = [guzzlerAddr, m2Addr];
 
-      await susuChain.write.createCircle(["Guzzler Payout Circle", parseEther("1"), 30n, members]);
+      await susuChain.write.createCircle(["Guzzler Payout Circle", parseEther("1"), 30n, 2n, 0n, members]);
 
       await guzzlerContract.write.callContribute([susuChain.address, 0n], { value: parseEther("1") });
 
@@ -547,7 +569,7 @@ describe("SusuChain", function () {
       const m2Addr = getAddress(member2.account.address);
       const members = [revAddr, m2Addr];
 
-      await susuChain.write.createCircle(["Progressing Circle", parseEther("1"), 30n, members]);
+      await susuChain.write.createCircle(["Progressing Circle", parseEther("1"), 30n, 2n, 0n, members]);
 
       // Round 0
       await revertingContract.write.callContribute([susuChain.address, 0n], { value: parseEther("1") });
@@ -570,7 +592,7 @@ describe("SusuChain", function () {
       const m3Addr = getAddress(member3.account.address);
       const members = [revAddr, m2Addr, m3Addr];
 
-      await susuChain.write.createCircle(["Multi-round Circle", parseEther("1"), 30n, members]);
+      await susuChain.write.createCircle(["Multi-round Circle", parseEther("1"), 30n, 2n, 0n, members]);
 
       // Round 0
       await revertingContract.write.callContribute([susuChain.address, 0n], { value: parseEther("1") });
@@ -597,7 +619,7 @@ describe("SusuChain", function () {
       const m2Addr = getAddress(member2.account.address);
       const members = [revAddr, m2Addr]; // 2 rounds total
 
-      await susuChain.write.createCircle(["Deactivating Circle", parseEther("1"), 30n, members]);
+      await susuChain.write.createCircle(["Deactivating Circle", parseEther("1"), 30n, 2n, 0n, members]);
 
       // Round 0: Payout to revertingContract (fails)
       await revertingContract.write.callContribute([susuChain.address, 0n], { value: parseEther("1") });
@@ -621,7 +643,7 @@ describe("SusuChain", function () {
       const m2Addr = getAddress(member2.account.address);
       const members = [revAddr, m2Addr];
 
-      await susuChain.write.createCircle(["Pull Circle", parseEther("1"), 30n, members]);
+      await susuChain.write.createCircle(["Pull Circle", parseEther("1"), 30n, 2n, 0n, members]);
 
       // Trigger failed payout to revertingContract
       await revertingContract.write.callContribute([susuChain.address, 0n], { value: parseEther("1") });
@@ -656,7 +678,7 @@ describe("SusuChain", function () {
       const m2Addr = getAddress(member2.account.address);
       const members = [revAddr, m2Addr];
 
-      await susuChain.write.createCircle(["Withdrawal Event Circle", parseEther("1"), 30n, members]);
+      await susuChain.write.createCircle(["Withdrawal Event Circle", parseEther("1"), 30n, 2n, 0n, members]);
 
       // Trigger failed payout to revertingContract
       await revertingContract.write.callContribute([susuChain.address, 0n], { value: parseEther("1") });
@@ -672,6 +694,104 @@ describe("SusuChain", function () {
       expect(events).to.have.lengthOf(1);
       expect(getAddress(events[0].args.recipient!)).to.equal(revAddr);
       expect(events[0].args.amount).to.equal(parseEther("2"));
+    });
+  });
+
+  describe("Late Payment Penalties and Grace Periods", function () {
+    it("Should successfully contribute on-time with penalty configurations active", async function () {
+      const { susuChain, member1, member2 } = await loadFixture(deploySusuChainFixture);
+      const members = [getAddress(member1.account.address), getAddress(member2.account.address)];
+
+      await susuChain.write.createCircle([
+        "Penalty Circle",
+        parseEther("1"),
+        7n,
+        2n,
+        parseEther("0.5"),
+        members,
+      ]);
+
+      const susuM1 = await hre.viem.getContractAt("SusuChain", susuChain.address, { client: { wallet: member1 } });
+      
+      await expect(
+        susuM1.write.contribute([0n], { value: parseEther("1") })
+      ).to.be.fulfilled;
+    });
+
+    it("Should successfully contribute within the grace period without charging a penalty", async function () {
+      const { susuChain, member1, member2 } = await loadFixture(deploySusuChainFixture);
+      const members = [getAddress(member1.account.address), getAddress(member2.account.address)];
+
+      await susuChain.write.createCircle([
+        "Penalty Circle",
+        parseEther("1"),
+        7n,
+        2n,
+        parseEther("0.5"),
+        members,
+      ]);
+
+      const susuM1 = await hre.viem.getContractAt("SusuChain", susuChain.address, { client: { wallet: member1 } });
+      
+      await time.increase(8 * 24 * 60 * 60);
+
+      await expect(
+        susuM1.write.contribute([0n], { value: parseEther("1") })
+      ).to.be.fulfilled;
+    });
+
+    it("Should reject contributions after the grace period if the penalty is not included", async function () {
+      const { susuChain, member1, member2 } = await loadFixture(deploySusuChainFixture);
+      const members = [getAddress(member1.account.address), getAddress(member2.account.address)];
+
+      await susuChain.write.createCircle([
+        "Penalty Circle",
+        parseEther("1"),
+        7n,
+        2n,
+        parseEther("0.5"),
+        members,
+      ]);
+
+      const susuM1 = await hre.viem.getContractAt("SusuChain", susuChain.address, { client: { wallet: member1 } });
+      
+      await time.increase(10 * 24 * 60 * 60);
+
+      await expect(
+        susuM1.write.contribute([0n], { value: parseEther("1") })
+      ).to.be.rejectedWith("Wrong contribution amount");
+    });
+
+    it("Should accept late contributions when penalty is paid and correctly augment the payout pool", async function () {
+      const { susuChain, member1, member2, publicClient } = await loadFixture(deploySusuChainFixture);
+      const m1Addr = getAddress(member1.account.address);
+      const m2Addr = getAddress(member2.account.address);
+      const members = [m1Addr, m2Addr];
+
+      await susuChain.write.createCircle([
+        "Penalty Circle",
+        parseEther("1"),
+        7n,
+        2n,
+        parseEther("0.5"),
+        members,
+      ]);
+
+      const susuM1 = await hre.viem.getContractAt("SusuChain", susuChain.address, { client: { wallet: member1 } });
+      const susuM2 = await hre.viem.getContractAt("SusuChain", susuChain.address, { client: { wallet: member2 } });
+      
+      await time.increase(10 * 24 * 60 * 60);
+
+      await expect(
+        susuM1.write.contribute([0n], { value: parseEther("1.5") })
+      ).to.be.fulfilled;
+
+      const balanceBefore = await publicClient.getBalance({ address: m1Addr });
+      const hash = await susuM2.write.contribute([0n], { value: parseEther("1.5") });
+      await publicClient.waitForTransactionReceipt({ hash });
+
+      const balanceAfter = await publicClient.getBalance({ address: m1Addr });
+      expect(balanceAfter - balanceBefore).to.equal(parseEther("3"));
     });
   });
 });

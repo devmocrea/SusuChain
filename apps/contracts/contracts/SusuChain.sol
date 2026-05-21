@@ -13,6 +13,9 @@ contract SusuChain is Pausable {
         uint256 currentRound;
         uint256 lastPayout;
         bool active;
+        uint256 roundDuration;
+        uint256 gracePeriod;
+        uint256 penaltyFee;
     }
 
     mapping(uint256 => Circle) public circles;
@@ -61,7 +64,9 @@ contract SusuChain is Pausable {
     function createCircle(
         string memory name,
         uint256 contributionAmount,
-        uint256 cycleDurationDays,
+        uint256 roundDurationDays,
+        uint256 gracePeriodDays,
+        uint256 penaltyFee,
         address[] memory members
     ) external whenNotPaused {
         require(members.length >= 2, "Minimum 2 members required");
@@ -70,11 +75,14 @@ contract SusuChain is Pausable {
         uint256 id = circleCount++;
         circles[id].name = name;
         circles[id].contributionAmount = contributionAmount;
-        circles[id].cycleDuration = cycleDurationDays * 1 days;
+        circles[id].cycleDuration = roundDurationDays * 1 days;
         circles[id].members = members;
         circles[id].currentRound = 0;
         circles[id].lastPayout = block.timestamp;
         circles[id].active = true;
+        circles[id].roundDuration = roundDurationDays * 1 days;
+        circles[id].gracePeriod = gracePeriodDays * 1 days;
+        circles[id].penaltyFee = penaltyFee;
         emit CircleCreated(id, msg.sender, name);
     }
 
@@ -91,7 +99,14 @@ contract SusuChain is Pausable {
             return;
         }
 
-        require(msg.value == circle.contributionAmount, "Wrong contribution amount");
+        uint256 deadline = circle.lastPayout + circle.roundDuration;
+        bool isLate = block.timestamp > deadline + circle.gracePeriod;
+
+        uint256 expectedAmount = circle.contributionAmount;
+        if (isLate) {
+            expectedAmount += circle.penaltyFee;
+        }
+        require(msg.value == expectedAmount, "Wrong contribution amount");
         bool memberFound = false;
         for (uint256 i = 0; i < circle.members.length; i++) {
             if (circle.members[i] == msg.sender) { memberFound = true; break; }
@@ -99,7 +114,9 @@ contract SusuChain is Pausable {
         require(memberFound, "Not a member");
         require(!hasPaid[circleId][circle.currentRound][msg.sender], "Already paid this round");
         hasPaid[circleId][circle.currentRound][msg.sender] = true;
+        // Include any paid penalty fees in the round's payout pool
         roundBalance[circleId] += msg.value;
+        // Log the contribution including any paid late fees
         emit ContributionMade(circleId, msg.sender, msg.value, circle.currentRound);
         bool allPaid = true;
         for (uint256 i = 0; i < circle.members.length; i++) {
@@ -144,11 +161,15 @@ contract SusuChain is Pausable {
         address[] memory members,
         uint256 currentRound,
         uint256 lastPayout,
-        bool active
+        bool active,
+        uint256 roundDuration,
+        uint256 gracePeriod,
+        uint256 penaltyFee
     ) {
         Circle storage c = circles[circleId];
         return (c.name, c.contributionAmount, c.cycleDuration, c.members,
-                c.currentRound, c.lastPayout, c.active);
+                c.currentRound, c.lastPayout, c.active, c.roundDuration,
+                c.gracePeriod, c.penaltyFee);
     }
 
     function isMember(uint256 circleId, address user) external view returns (bool) {
