@@ -115,6 +115,7 @@
   )
     (asserts! (get active circle) (err u23))
     (asserts! (is-eq tx-sender creator) (err u24))
+    (asserts! (< round u18446744073709551615) (err u25))
     (map-set round-balance { circle-id: circle-id } { balance: u0 })
     (map-set circles
       { circle-id: circle-id }
