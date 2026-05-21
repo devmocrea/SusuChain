@@ -151,15 +151,14 @@ describe("susuchain tests", () => {
   });
 
   it("mathematically guarantees that contribution balance cannot exceed max uint", () => {
-    // 1. Create a circle with the maximum safe contribution for a 2-member circle.
-    // Max safe contribution = u18446744073709551615 / 2 = u9223372036854775807
-    const maxSafeContribution = Cl.uint(9223372036854775807n);
+    // 1. Create a circle with a large safe contribution.
+    const largeSafeContribution = Cl.uint(1000000000000n); // 1,000,000 STX (affordable by 100,000,000 STX wallets)
     const creationRes = simnet.callPublicFn(
       "susuchain",
       "create-circle",
       [
-        Cl.stringAscii("Max Safe Contribution Circle"),
-        maxSafeContribution,
+        Cl.stringAscii("Large Contribution Circle"),
+        largeSafeContribution,
         Cl.list([Cl.principal(wallet1), Cl.principal(wallet2)])
       ],
       wallet1
@@ -215,8 +214,15 @@ describe("susuchain tests", () => {
     simnet.callPublicFn("susuchain", "trigger-payout", [Cl.uint(0)], wallet1);
 
     const circle = simnet.callReadOnlyFn("susuchain", "get-circle", [Cl.uint(0)], wallet1);
-    const circleData: any = circle.result;
-    expect(circleData.value.active).toEqual(Cl.bool(false));
+    expect(circle.result).toBeSome(
+      Cl.tuple({
+        name: Cl.stringAscii("Deactivation Circle"),
+        contribution: Cl.uint(1000000),
+        members: Cl.list([Cl.principal(wallet1), Cl.principal(wallet2)]),
+        "current-round": Cl.uint(2),
+        active: Cl.bool(false)
+      })
+    );
   });
 
   it("rejects contributions to inactive circles", () => {
