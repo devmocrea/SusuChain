@@ -698,5 +698,34 @@ describe("SusuChain", function () {
       expect(getAddress(circleData[3][2])).to.equal(m2Addr);
       expect(circleData[6]).to.be.true;
     });
+
+    it("Should verify that pause state prevents circle creation regardless of duplicate members", async function () {
+      const { susuChain, member1, member2 } = await loadFixture(deploySusuChainFixture);
+      const m1Addr = getAddress(member1.account.address);
+      const m2Addr = getAddress(member2.account.address);
+
+      await susuChain.write.pause();
+      expect(await susuChain.read.paused()).to.be.true;
+
+      const duplicateMembers = [m1Addr, m1Addr, m2Addr];
+      await expect(
+        susuChain.write.createCircle([
+          "Paused Duplicate Circle",
+          parseEther("1"),
+          30n,
+          duplicateMembers,
+        ])
+      ).to.be.rejectedWith("EnforcedPause()");
+
+      const uniqueMembers = [m1Addr, m2Addr];
+      await expect(
+        susuChain.write.createCircle([
+          "Paused Unique Circle",
+          parseEther("1"),
+          30n,
+          uniqueMembers,
+        ])
+      ).to.be.rejectedWith("EnforcedPause()");
+    });
   });
 });
