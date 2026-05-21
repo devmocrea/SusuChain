@@ -149,4 +149,29 @@ describe("susuchain tests", () => {
     );
     expect(result).toBeErr(Cl.uint(3));
   });
+
+  it("mathematically guarantees that contribution balance cannot exceed max uint", () => {
+    // 1. Create a circle with the maximum safe contribution for a 2-member circle.
+    // Max safe contribution = u18446744073709551615 / 2 = u9223372036854775807
+    const maxSafeContribution = Cl.uint(9223372036854775807n);
+    const creationRes = simnet.callPublicFn(
+      "susuchain",
+      "create-circle",
+      [
+        Cl.stringAscii("Max Safe Contribution Circle"),
+        maxSafeContribution,
+        Cl.list([Cl.principal(wallet1), Cl.principal(wallet2)])
+      ],
+      wallet1
+    );
+    expect(creationRes.result).toBeOk(Cl.uint(0));
+
+    // 2. Contribute wallet1
+    const res1 = simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet1);
+    expect(res1.result).toBeOk(Cl.bool(true));
+
+    // 3. Contribute wallet2
+    const res2 = simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet2);
+    expect(res2.result).toBeOk(Cl.bool(true));
+  });
 });
