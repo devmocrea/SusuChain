@@ -75,11 +75,14 @@ contract SusuChain is Pausable {
         uint256 id = circleCount++;
         circles[id].name = name;
         circles[id].contributionAmount = contributionAmount;
-        circles[id].cycleDuration = cycleDurationDays * 1 days;
+        circles[id].cycleDuration = roundDurationDays * 1 days;
         circles[id].members = members;
         circles[id].currentRound = 0;
         circles[id].lastPayout = block.timestamp;
         circles[id].active = true;
+        circles[id].roundDuration = roundDurationDays * 1 days;
+        circles[id].gracePeriod = gracePeriodDays * 1 days;
+        circles[id].penaltyFee = penaltyFee;
         emit CircleCreated(id, msg.sender, name);
     }
 
