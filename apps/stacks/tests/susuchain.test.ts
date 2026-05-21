@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { Cl } from "@hirosystems/clarinet-sdk";
 
 const accounts = simnet.getAccounts();
 const wallet1 = accounts.get("wallet_1")!;
@@ -13,5 +14,19 @@ describe("susuchain tests", () => {
   it("verifies contract deployment and initial circle count", () => {
     const { result } = simnet.callReadOnlyFn("susuchain", "get-circle-count", [], wallet1);
     expect(result).toBeUint(0);
+  });
+
+  it("successfully creates a circle", () => {
+    const { result } = simnet.callPublicFn(
+      "susuchain",
+      "create-circle",
+      [
+        Cl.stringAscii("Susu Test Circle"),
+        Cl.uint(1000000), // 1 STX
+        Cl.list([Cl.principal(wallet1), Cl.principal(wallet2)])
+      ],
+      wallet1
+    );
+    expect(result).toBeOk(Cl.uint(0));
   });
 });
