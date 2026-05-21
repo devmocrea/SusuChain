@@ -174,4 +174,23 @@ describe("susuchain tests", () => {
     const res2 = simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet2);
     expect(res2.result).toBeOk(Cl.bool(true));
   });
+
+  it("verifies trigger-payout works successfully within expected round boundaries", () => {
+    simnet.callPublicFn(
+      "susuchain",
+      "create-circle",
+      [
+        Cl.stringAscii("Susu Test Circle"),
+        Cl.uint(1000000), // 1 STX
+        Cl.list([Cl.principal(wallet1), Cl.principal(wallet2)])
+      ],
+      wallet1
+    );
+
+    simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet1);
+    simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet2);
+
+    const payoutRes = simnet.callPublicFn("susuchain", "trigger-payout", [Cl.uint(0)], wallet1);
+    expect(payoutRes.result).toBeOk(Cl.bool(true));
+  });
 });
