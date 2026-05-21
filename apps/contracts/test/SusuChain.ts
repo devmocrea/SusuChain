@@ -739,5 +739,27 @@ describe("SusuChain", function () {
         susuM1.write.contribute([0n], { value: parseEther("1") })
       ).to.be.fulfilled;
     });
+
+    it("Should reject contributions after the grace period if the penalty is not included", async function () {
+      const { susuChain, member1, member2 } = await loadFixture(deploySusuChainFixture);
+      const members = [getAddress(member1.account.address), getAddress(member2.account.address)];
+
+      await susuChain.write.createCircle([
+        "Penalty Circle",
+        parseEther("1"),
+        7n,
+        2n,
+        parseEther("0.5"),
+        members,
+      ]);
+
+      const susuM1 = await hre.viem.getContractAt("SusuChain", susuChain.address, { client: { wallet: member1 } });
+      
+      await time.increase(10 * 24 * 60 * 60);
+
+      await expect(
+        susuM1.write.contribute([0n], { value: parseEther("1") })
+      ).to.be.rejectedWith("Wrong contribution amount");
+    });
   });
 });
