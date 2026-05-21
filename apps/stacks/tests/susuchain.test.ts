@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Cl } from "@hirosystems/clarinet-sdk";
+import { Cl } from "@stacks/transactions";
 
 const accounts = simnet.getAccounts();
 const wallet1 = accounts.get("wallet_1")!;
@@ -103,5 +103,33 @@ describe("susuchain tests", () => {
         active: Cl.bool(false)
       })
     );
+  });
+
+  it("safely increments circle count across multiple circle creations", () => {
+    const res1 = simnet.callPublicFn(
+      "susuchain",
+      "create-circle",
+      [
+        Cl.stringAscii("Susu Test Circle 1"),
+        Cl.uint(1000000),
+        Cl.list([Cl.principal(wallet1), Cl.principal(wallet2)])
+      ],
+      wallet1
+    );
+    expect(res1.result).toBeOk(Cl.uint(0));
+    expect(simnet.callReadOnlyFn("susuchain", "get-circle-count", [], wallet1).result).toBeUint(1);
+
+    const res2 = simnet.callPublicFn(
+      "susuchain",
+      "create-circle",
+      [
+        Cl.stringAscii("Susu Test Circle 2"),
+        Cl.uint(1000000),
+        Cl.list([Cl.principal(wallet1), Cl.principal(wallet3)])
+      ],
+      wallet1
+    );
+    expect(res2.result).toBeOk(Cl.uint(1));
+    expect(simnet.callReadOnlyFn("susuchain", "get-circle-count", [], wallet1).result).toBeUint(2);
   });
 });
