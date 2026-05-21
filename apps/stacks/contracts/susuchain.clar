@@ -60,6 +60,7 @@
   (let ((circle-id (var-get circle-count)))
     (asserts! (>= (len members) u2) (err u1))
     (asserts! (> contribution u0) (err u2))
+    (asserts! (< circle-id u18446744073709551615) (err u4))
     (map-set circles
       { circle-id: circle-id }
       {
