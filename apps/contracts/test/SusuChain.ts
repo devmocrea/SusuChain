@@ -567,5 +567,21 @@ describe("SusuChain", function () {
         ])
       ).to.be.fulfilled;
     });
+
+    it("Should fail to create circle with three members containing a duplicate pair", async function () {
+      const { susuChain, member1, member2 } = await loadFixture(deploySusuChainFixture);
+      const m1Addr = getAddress(member1.account.address);
+      const m2Addr = getAddress(member2.account.address);
+      const members = [m1Addr, m2Addr, m1Addr];
+
+      await expect(
+        susuChain.write.createCircle([
+          "Three Members Duplicate Pair Circle",
+          parseEther("1"),
+          30n,
+          members,
+        ])
+      ).to.be.rejectedWith("Duplicate member addresses not allowed");
+    });
   });
 });
