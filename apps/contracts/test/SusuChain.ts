@@ -140,6 +140,8 @@ describe("SusuChain", function () {
         "Celo Circle",
         parseEther("1"),
         30n,
+        2n,
+        0n,
         members,
       ]);
 
@@ -162,6 +164,8 @@ describe("SusuChain", function () {
         "Susu Circle",
         parseEther("1"),
         30n,
+        2n,
+        0n,
         members,
       ]);
 
@@ -194,7 +198,7 @@ describe("SusuChain", function () {
         deploySusuChainFixture
       );
       const members = [getAddress(member1.account.address), getAddress(member2.account.address)];
-      await susuChain.write.createCircle(["Susu Circle", parseEther("1"), 30n, members]);
+      await susuChain.write.createCircle(["Susu Circle", parseEther("1"), 30n, 2n, 0n, members]);
       
       const susuNon = await hre.viem.getContractAt(
         "SusuChain",
@@ -209,7 +213,7 @@ describe("SusuChain", function () {
     it("Should reject wrong contribution amounts", async function () {
       const { susuChain, member1, member2 } = await loadFixture(deploySusuChainFixture);
       const members = [getAddress(member1.account.address), getAddress(member2.account.address)];
-      await susuChain.write.createCircle(["Susu Circle", parseEther("1"), 30n, members]);
+      await susuChain.write.createCircle(["Susu Circle", parseEther("1"), 30n, 2n, 0n, members]);
       
       const susuM1 = await hre.viem.getContractAt(
         "SusuChain",
@@ -224,7 +228,7 @@ describe("SusuChain", function () {
     it("Should reject double payments in the same round", async function () {
       const { susuChain, member1, member2 } = await loadFixture(deploySusuChainFixture);
       const members = [getAddress(member1.account.address), getAddress(member2.account.address)];
-      await susuChain.write.createCircle(["Susu Circle", parseEther("1"), 30n, members]);
+      await susuChain.write.createCircle(["Susu Circle", parseEther("1"), 30n, 2n, 0n, members]);
       
       const susuM1 = await hre.viem.getContractAt(
         "SusuChain",
@@ -250,6 +254,8 @@ describe("SusuChain", function () {
         "Susu Circle",
         parseEther("1"),
         30n,
+        2n,
+        0n,
         members,
       ]);
 
@@ -296,6 +302,8 @@ describe("SusuChain", function () {
         "Susu Circle",
         parseEther("1"),
         30n,
+        2n,
+        0n,
         members,
       ]);
 
