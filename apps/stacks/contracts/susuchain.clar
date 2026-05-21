@@ -89,6 +89,7 @@
     (asserts! (get active circle) (err u11))
     (asserts! (is-some (index-of (get members circle) tx-sender)) (err u12))
     (asserts! (not (has-member-paid circle-id round tx-sender)) (err u13))
+    (asserts! (<= amount (- u18446744073709551615 bal)) (err u14))
     (try! (stx-transfer? amount tx-sender (as-contract tx-sender)))
     (map-set has-paid
       { circle-id: circle-id, round: round, member: tx-sender }
