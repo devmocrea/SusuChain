@@ -43,6 +43,8 @@ describe("SusuChain", function () {
           "Below Limit Circle",
           parseEther("0.0005"), // Below 0.001 CELO
           30n,
+          2n,
+          0n,
           members,
         ])
       ).to.be.rejectedWith("Contribution too low");
@@ -57,6 +59,8 @@ describe("SusuChain", function () {
           "Above Limit Circle",
           parseEther("10001"), // Above 10,000 CELO
           30n,
+          2n,
+          0n,
           members,
         ])
       ).to.be.rejectedWith("Contribution too high");
@@ -71,6 +75,8 @@ describe("SusuChain", function () {
           "Valid Circle",
           parseEther("10"), // Within range [0.001, 10000]
           30n,
+          2n,
+          0n,
           members,
         ])
       ).to.be.fulfilled;
