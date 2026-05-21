@@ -513,7 +513,7 @@ describe("SusuChain", function () {
       const m2Addr = getAddress(member2.account.address);
       const members = [m1Addr, m2Addr];
 
-      await susuChain.write.createCircle(["Standard Circle", parseEther("1"), 30n, members]);
+      await susuChain.write.createCircle(["Standard Circle", parseEther("1"), 30n, 2n, 0n, members]);
 
       const susuM1 = await hre.viem.getContractAt("SusuChain", susuChain.address, { client: { wallet: member1 } });
       await susuM1.write.contribute([0n], { value: parseEther("1") });
@@ -535,7 +535,7 @@ describe("SusuChain", function () {
       const m2Addr = getAddress(member2.account.address);
       const members = [revAddr, m2Addr];
 
-      await susuChain.write.createCircle(["Reverting Payout Circle", parseEther("1"), 30n, members]);
+      await susuChain.write.createCircle(["Reverting Payout Circle", parseEther("1"), 30n, 2n, 0n, members]);
 
       await revertingContract.write.callContribute([susuChain.address, 0n], { value: parseEther("1") });
 
@@ -552,7 +552,7 @@ describe("SusuChain", function () {
       const m2Addr = getAddress(member2.account.address);
       const members = [guzzlerAddr, m2Addr];
 
-      await susuChain.write.createCircle(["Guzzler Payout Circle", parseEther("1"), 30n, members]);
+      await susuChain.write.createCircle(["Guzzler Payout Circle", parseEther("1"), 30n, 2n, 0n, members]);
 
       await guzzlerContract.write.callContribute([susuChain.address, 0n], { value: parseEther("1") });
 
@@ -569,7 +569,7 @@ describe("SusuChain", function () {
       const m2Addr = getAddress(member2.account.address);
       const members = [revAddr, m2Addr];
 
-      await susuChain.write.createCircle(["Progressing Circle", parseEther("1"), 30n, members]);
+      await susuChain.write.createCircle(["Progressing Circle", parseEther("1"), 30n, 2n, 0n, members]);
 
       // Round 0
       await revertingContract.write.callContribute([susuChain.address, 0n], { value: parseEther("1") });
@@ -592,7 +592,7 @@ describe("SusuChain", function () {
       const m3Addr = getAddress(member3.account.address);
       const members = [revAddr, m2Addr, m3Addr];
 
-      await susuChain.write.createCircle(["Multi-round Circle", parseEther("1"), 30n, members]);
+      await susuChain.write.createCircle(["Multi-round Circle", parseEther("1"), 30n, 2n, 0n, members]);
 
       // Round 0
       await revertingContract.write.callContribute([susuChain.address, 0n], { value: parseEther("1") });
@@ -619,7 +619,7 @@ describe("SusuChain", function () {
       const m2Addr = getAddress(member2.account.address);
       const members = [revAddr, m2Addr]; // 2 rounds total
 
-      await susuChain.write.createCircle(["Deactivating Circle", parseEther("1"), 30n, members]);
+      await susuChain.write.createCircle(["Deactivating Circle", parseEther("1"), 30n, 2n, 0n, members]);
 
       // Round 0: Payout to revertingContract (fails)
       await revertingContract.write.callContribute([susuChain.address, 0n], { value: parseEther("1") });
@@ -643,7 +643,7 @@ describe("SusuChain", function () {
       const m2Addr = getAddress(member2.account.address);
       const members = [revAddr, m2Addr];
 
-      await susuChain.write.createCircle(["Pull Circle", parseEther("1"), 30n, members]);
+      await susuChain.write.createCircle(["Pull Circle", parseEther("1"), 30n, 2n, 0n, members]);
 
       // Trigger failed payout to revertingContract
       await revertingContract.write.callContribute([susuChain.address, 0n], { value: parseEther("1") });
@@ -678,7 +678,7 @@ describe("SusuChain", function () {
       const m2Addr = getAddress(member2.account.address);
       const members = [revAddr, m2Addr];
 
-      await susuChain.write.createCircle(["Withdrawal Event Circle", parseEther("1"), 30n, members]);
+      await susuChain.write.createCircle(["Withdrawal Event Circle", parseEther("1"), 30n, 2n, 0n, members]);
 
       // Trigger failed payout to revertingContract
       await revertingContract.write.callContribute([susuChain.address, 0n], { value: parseEther("1") });
