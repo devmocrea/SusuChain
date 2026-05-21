@@ -258,4 +258,23 @@ describe("susuchain tests", () => {
     const res = simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet3);
     expect(res.result).toBeErr(Cl.uint(12));
   });
+
+  it("rejects payout triggering from non-creator callers", () => {
+    simnet.callPublicFn(
+      "susuchain",
+      "create-circle",
+      [
+        Cl.stringAscii("Creator Restriction Circle"),
+        Cl.uint(1000000),
+        Cl.list([Cl.principal(wallet1), Cl.principal(wallet2)])
+      ],
+      wallet1
+    );
+
+    simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet1);
+    simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet2);
+
+    const res = simnet.callPublicFn("susuchain", "trigger-payout", [Cl.uint(0)], wallet2);
+    expect(res.result).toBeErr(Cl.uint(24));
+  });
 });
