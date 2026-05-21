@@ -48,4 +48,60 @@ describe("susuchain tests", () => {
     const res2 = simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet2);
     expect(res2.result).toBeOk(Cl.bool(true));
   });
+
+  it("handles full circle rotation and payouts", () => {
+    // 1. Create a 2-member circle
+    simnet.callPublicFn(
+      "susuchain",
+      "create-circle",
+      [
+        Cl.stringAscii("Susu Test Circle"),
+        Cl.uint(1000000), // 1 STX
+        Cl.list([Cl.principal(wallet1), Cl.principal(wallet2)])
+      ],
+      wallet1
+    );
+
+    // ROUND 0
+    // Contributors pay
+    simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet1);
+    simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet2);
+
+    // Creator triggers payout
+    const pay1 = simnet.callPublicFn("susuchain", "trigger-payout", [Cl.uint(0)], wallet1);
+    expect(pay1.result).toBeOk(Cl.bool(true));
+
+    // Verify round progressed to 1, and active is true
+    const circle1 = simnet.callReadOnlyFn("susuchain", "get-circle", [Cl.uint(0)], wallet1);
+    expect(circle1.result).toBeSome(
+      Cl.tuple({
+        name: Cl.stringAscii("Susu Test Circle"),
+        contribution: Cl.uint(1000000),
+        members: Cl.list([Cl.principal(wallet1), Cl.principal(wallet2)]),
+        "current-round": Cl.uint(1),
+        active: Cl.bool(true)
+      })
+    );
+
+    // ROUND 1
+    // Contributors pay
+    simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet1);
+    simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet2);
+
+    // Creator triggers payout
+    const pay2 = simnet.callPublicFn("susuchain", "trigger-payout", [Cl.uint(0)], wallet1);
+    expect(pay2.result).toBeOk(Cl.bool(true));
+
+    // Verify circle is inactive after complete rotation
+    const circle2 = simnet.callReadOnlyFn("susuchain", "get-circle", [Cl.uint(0)], wallet1);
+    expect(circle2.result).toBeSome(
+      Cl.tuple({
+        name: Cl.stringAscii("Susu Test Circle"),
+        contribution: Cl.uint(1000000),
+        members: Cl.list([Cl.principal(wallet1), Cl.principal(wallet2)]),
+        "current-round": Cl.uint(2),
+        active: Cl.bool(false)
+      })
+    );
+  });
 });
