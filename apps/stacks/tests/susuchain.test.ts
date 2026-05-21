@@ -242,4 +242,20 @@ describe("susuchain tests", () => {
     const res = simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet1);
     expect(res.result).toBeErr(Cl.uint(11));
   });
+
+  it("rejects contributions from non-members", () => {
+    simnet.callPublicFn(
+      "susuchain",
+      "create-circle",
+      [
+        Cl.stringAscii("Susu Test Circle"),
+        Cl.uint(1000000), // 1 STX
+        Cl.list([Cl.principal(wallet1), Cl.principal(wallet2)])
+      ],
+      wallet1
+    );
+
+    const res = simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet3);
+    expect(res.result).toBeErr(Cl.uint(12));
+  });
 });
