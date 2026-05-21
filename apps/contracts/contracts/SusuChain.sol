@@ -102,7 +102,11 @@ contract SusuChain is Pausable {
         uint256 deadline = circle.lastPayout + circle.roundDuration;
         bool isLate = block.timestamp > deadline + circle.gracePeriod;
 
-        require(msg.value == circle.contributionAmount, "Wrong contribution amount");
+        uint256 expectedAmount = circle.contributionAmount;
+        if (isLate) {
+            expectedAmount += circle.penaltyFee;
+        }
+        require(msg.value == expectedAmount, "Wrong contribution amount");
         bool memberFound = false;
         for (uint256 i = 0; i < circle.members.length; i++) {
             if (circle.members[i] == msg.sender) { memberFound = true; break; }
