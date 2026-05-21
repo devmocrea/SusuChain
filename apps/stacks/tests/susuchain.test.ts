@@ -218,4 +218,28 @@ describe("susuchain tests", () => {
     const circleData: any = circle.result;
     expect(circleData.value.active).toEqual(Cl.bool(false));
   });
+
+  it("rejects contributions to inactive circles", () => {
+    simnet.callPublicFn(
+      "susuchain",
+      "create-circle",
+      [
+        Cl.stringAscii("Inactive Circle"),
+        Cl.uint(1000000),
+        Cl.list([Cl.principal(wallet1), Cl.principal(wallet2)])
+      ],
+      wallet1
+    );
+
+    simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet1);
+    simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet2);
+    simnet.callPublicFn("susuchain", "trigger-payout", [Cl.uint(0)], wallet1);
+
+    simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet1);
+    simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet2);
+    simnet.callPublicFn("susuchain", "trigger-payout", [Cl.uint(0)], wallet1);
+
+    const res = simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet1);
+    expect(res.result).toBeErr(Cl.uint(11));
+  });
 });
