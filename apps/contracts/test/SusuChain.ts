@@ -649,5 +649,26 @@ describe("SusuChain", function () {
         ])
       ).to.be.rejectedWith("Duplicate member addresses not allowed");
     });
+
+    it("Should emit a CircleCreated event when a circle is successfully created with unique members", async function () {
+      const { susuChain, publicClient, owner, member1, member2 } = await loadFixture(deploySusuChainFixture);
+      const ownerAddr = getAddress(owner.account.address);
+      const m1Addr = getAddress(member1.account.address);
+      const m2Addr = getAddress(member2.account.address);
+      const members = [ownerAddr, m1Addr, m2Addr];
+
+      const hash = await susuChain.write.createCircle([
+        "Event Unique Members Circle",
+        parseEther("1"),
+        30n,
+        members,
+      ]);
+      await publicClient.waitForTransactionReceipt({ hash });
+
+      const events = await susuChain.getEvents.CircleCreated();
+      expect(events).to.have.lengthOf(1);
+      expect(events[0].args.creator).to.equal(ownerAddr);
+      expect(events[0].args.name).to.equal("Event Unique Members Circle");
+    });
   });
 });
