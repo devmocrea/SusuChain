@@ -485,6 +485,22 @@ describe("SusuChain", function () {
   });
 
   describe("Duplicate Member Prevention", function () {
-    // Draft test block for duplicate address registration check
+    it("Should fail to create circle if duplicate members exist at the beginning", async function () {
+      const { susuChain, member1, member2 } = await loadFixture(deploySusuChainFixture);
+      const m1Addr = getAddress(member1.account.address);
+      const m2Addr = getAddress(member2.account.address);
+      const members = [m1Addr, m1Addr, m2Addr];
+
+      await expect(
+        susuChain.write.createCircle([
+          "Duplicate Start Circle",
+          parseEther("1"),
+          30n,
+          2n,
+          0n,
+          members,
+        ])
+      ).to.be.rejectedWith("Duplicate member addresses not allowed");
+    });
   });
 });
