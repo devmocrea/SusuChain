@@ -9,4 +9,9 @@ describe("susuchain tests", () => {
   it("verifies vitest environment is ready", () => {
     expect(simnet.blockHeight).toBeDefined();
   });
+
+  it("verifies contract deployment and initial circle count", () => {
+    const { result } = simnet.callReadOnlyFn("susuchain", "get-circle-count", [], wallet1);
+    expect(result).toBeUint(0);
+  });
 });
