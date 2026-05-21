@@ -13,6 +13,9 @@ contract SusuChain is Pausable {
         uint256 currentRound;
         uint256 lastPayout;
         bool active;
+        uint256 roundDuration;
+        uint256 gracePeriod;
+        uint256 penaltyFee;
     }
 
     mapping(uint256 => Circle) public circles;
