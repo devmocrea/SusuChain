@@ -496,8 +496,6 @@ describe("SusuChain", function () {
           "Duplicate Start Circle",
           parseEther("1"),
           30n,
-          2n,
-          0n,
           members,
         ])
       ).to.be.rejectedWith("Duplicate member addresses not allowed");
@@ -514,8 +512,6 @@ describe("SusuChain", function () {
           "Duplicate End Circle",
           parseEther("1"),
           30n,
-          2n,
-          0n,
           members,
         ])
       ).to.be.rejectedWith("Duplicate member addresses not allowed");
@@ -533,8 +529,6 @@ describe("SusuChain", function () {
           "Duplicate Adjacent Middle Circle",
           parseEther("1"),
           30n,
-          2n,
-          0n,
           members,
         ])
       ).to.be.rejectedWith("Duplicate member addresses not allowed");
@@ -552,8 +546,6 @@ describe("SusuChain", function () {
           "Duplicate Non-Adjacent Circle",
           parseEther("1"),
           30n,
-          2n,
-          0n,
           members,
         ])
       ).to.be.rejectedWith("Duplicate member addresses not allowed");
@@ -571,8 +563,6 @@ describe("SusuChain", function () {
           "Unique Members Circle",
           parseEther("1"),
           30n,
-          2n,
-          0n,
           members,
         ])
       ).to.be.fulfilled;
