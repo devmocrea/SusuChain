@@ -116,6 +116,7 @@ contract SusuChain is Pausable {
         hasPaid[circleId][circle.currentRound][msg.sender] = true;
         // Include any paid penalty fees in the round's payout pool
         roundBalance[circleId] += msg.value;
+        // Log the contribution including any paid late fees
         emit ContributionMade(circleId, msg.sender, msg.value, circle.currentRound);
         bool allPaid = true;
         for (uint256 i = 0; i < circle.members.length; i++) {
