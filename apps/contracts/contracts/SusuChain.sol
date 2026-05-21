@@ -64,7 +64,9 @@ contract SusuChain is Pausable {
     function createCircle(
         string memory name,
         uint256 contributionAmount,
-        uint256 cycleDurationDays,
+        uint256 roundDurationDays,
+        uint256 gracePeriodDays,
+        uint256 penaltyFee,
         address[] memory members
     ) external whenNotPaused {
         require(members.length >= 2, "Minimum 2 members required");
