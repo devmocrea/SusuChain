@@ -114,6 +114,7 @@ contract SusuChain is Pausable {
         require(memberFound, "Not a member");
         require(!hasPaid[circleId][circle.currentRound][msg.sender], "Already paid this round");
         hasPaid[circleId][circle.currentRound][msg.sender] = true;
+        // Include any paid penalty fees in the round's payout pool
         roundBalance[circleId] += msg.value;
         emit ContributionMade(circleId, msg.sender, msg.value, circle.currentRound);
         bool allPaid = true;
