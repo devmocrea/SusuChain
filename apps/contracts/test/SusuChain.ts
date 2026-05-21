@@ -483,4 +483,8 @@ describe("SusuChain", function () {
       expect(getAddress(events[0].args.account!)).to.equal(getAddress(owner.account.address));
     });
   });
+
+  describe("Duplicate Member Prevention", function () {
+    // Draft test block for duplicate address registration check
+  });
 });
