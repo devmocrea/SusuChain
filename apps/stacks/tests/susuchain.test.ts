@@ -193,4 +193,29 @@ describe("susuchain tests", () => {
     const payoutRes = simnet.callPublicFn("susuchain", "trigger-payout", [Cl.uint(0)], wallet1);
     expect(payoutRes.result).toBeOk(Cl.bool(true));
   });
+
+  it("verifies circle is deactivated and active flag is false after final payout", () => {
+    simnet.callPublicFn(
+      "susuchain",
+      "create-circle",
+      [
+        Cl.stringAscii("Deactivation Circle"),
+        Cl.uint(1000000),
+        Cl.list([Cl.principal(wallet1), Cl.principal(wallet2)])
+      ],
+      wallet1
+    );
+
+    simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet1);
+    simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet2);
+    simnet.callPublicFn("susuchain", "trigger-payout", [Cl.uint(0)], wallet1);
+
+    simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet1);
+    simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet2);
+    simnet.callPublicFn("susuchain", "trigger-payout", [Cl.uint(0)], wallet1);
+
+    const circle = simnet.callReadOnlyFn("susuchain", "get-circle", [Cl.uint(0)], wallet1);
+    const circleData: any = circle.result;
+    expect(circleData.value.active).toEqual(Cl.bool(false));
+  });
 });
