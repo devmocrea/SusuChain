@@ -506,6 +506,277 @@ describe("SusuChain", function () {
     });
   });
 
+  describe("Duplicate Member Prevention", function () {
+    it("Should fail to create circle if duplicate members exist at the beginning", async function () {
+      const { susuChain, member1, member2 } = await loadFixture(deploySusuChainFixture);
+      const m1Addr = getAddress(member1.account.address);
+      const m2Addr = getAddress(member2.account.address);
+      const members = [m1Addr, m1Addr, m2Addr];
+
+      await expect(
+        susuChain.write.createCircle([
+          "Duplicate Start Circle",
+          parseEther("1"),
+          30n,
+          2n,
+          0n,
+          members,
+        ])
+      ).to.be.rejectedWith("Duplicate member addresses not allowed");
+    });
+
+    it("Should fail to create circle if duplicate members exist at the end", async function () {
+      const { susuChain, member1, member2 } = await loadFixture(deploySusuChainFixture);
+      const m1Addr = getAddress(member1.account.address);
+      const m2Addr = getAddress(member2.account.address);
+      const members = [m1Addr, m2Addr, m2Addr];
+
+      await expect(
+        susuChain.write.createCircle([
+          "Duplicate End Circle",
+          parseEther("1"),
+          30n,
+          2n,
+          0n,
+          members,
+        ])
+      ).to.be.rejectedWith("Duplicate member addresses not allowed");
+    });
+
+    it("Should fail to create circle if duplicate members exist adjacent in the middle", async function () {
+      const { susuChain, member1, member2, member3 } = await loadFixture(deploySusuChainFixture);
+      const m1Addr = getAddress(member1.account.address);
+      const m2Addr = getAddress(member2.account.address);
+      const m3Addr = getAddress(member3.account.address);
+      const members = [m1Addr, m2Addr, m2Addr, m3Addr];
+
+      await expect(
+        susuChain.write.createCircle([
+          "Duplicate Adjacent Middle Circle",
+          parseEther("1"),
+          30n,
+          2n,
+          0n,
+          members,
+        ])
+      ).to.be.rejectedWith("Duplicate member addresses not allowed");
+    });
+
+    it("Should fail to create circle if duplicate members exist non-adjacent in the array", async function () {
+      const { susuChain, member1, member2, member3 } = await loadFixture(deploySusuChainFixture);
+      const m1Addr = getAddress(member1.account.address);
+      const m2Addr = getAddress(member2.account.address);
+      const m3Addr = getAddress(member3.account.address);
+      const members = [m1Addr, m2Addr, m3Addr, m1Addr];
+
+      await expect(
+        susuChain.write.createCircle([
+          "Duplicate Non-Adjacent Circle",
+          parseEther("1"),
+          30n,
+          2n,
+          0n,
+          members,
+        ])
+      ).to.be.rejectedWith("Duplicate member addresses not allowed");
+    });
+
+    it("Should successfully create circle when members array contains only unique addresses", async function () {
+      const { susuChain, member1, member2, member3 } = await loadFixture(deploySusuChainFixture);
+      const m1Addr = getAddress(member1.account.address);
+      const m2Addr = getAddress(member2.account.address);
+      const m3Addr = getAddress(member3.account.address);
+      const members = [m1Addr, m2Addr, m3Addr];
+
+      await expect(
+        susuChain.write.createCircle([
+          "Unique Members Circle",
+          parseEther("1"),
+          30n,
+          2n,
+          0n,
+          members,
+        ])
+      ).to.be.fulfilled;
+    });
+
+    it("Should fail to create circle with three members containing a duplicate pair", async function () {
+      const { susuChain, member1, member2 } = await loadFixture(deploySusuChainFixture);
+      const m1Addr = getAddress(member1.account.address);
+      const m2Addr = getAddress(member2.account.address);
+      const members = [m1Addr, m2Addr, m1Addr];
+
+      await expect(
+        susuChain.write.createCircle([
+          "Three Members Duplicate Pair Circle",
+          parseEther("1"),
+          30n,
+          2n,
+          0n,
+          members,
+        ])
+      ).to.be.rejectedWith("Duplicate member addresses not allowed");
+    });
+
+    it("Should fail to create circle with five members containing duplicate owner address", async function () {
+      const { susuChain, owner, member1, member2, member3 } = await loadFixture(deploySusuChainFixture);
+      const ownerAddr = getAddress(owner.account.address);
+      const m1Addr = getAddress(member1.account.address);
+      const m2Addr = getAddress(member2.account.address);
+      const m3Addr = getAddress(member3.account.address);
+      const members = [ownerAddr, m1Addr, m2Addr, m3Addr, ownerAddr];
+
+      await expect(
+        susuChain.write.createCircle([
+          "Five Members Duplicate Owner Circle",
+          parseEther("1"),
+          30n,
+          2n,
+          0n,
+          members,
+        ])
+      ).to.be.rejectedWith("Duplicate member addresses not allowed");
+    });
+
+    it("Should successfully create circle with zero duplicate members and standard setup containing four members", async function () {
+      const { susuChain, owner, member1, member2, member3 } = await loadFixture(deploySusuChainFixture);
+      const ownerAddr = getAddress(owner.account.address);
+      const m1Addr = getAddress(member1.account.address);
+      const m2Addr = getAddress(member2.account.address);
+      const m3Addr = getAddress(member3.account.address);
+      const members = [ownerAddr, m1Addr, m2Addr, m3Addr];
+
+      await expect(
+        susuChain.write.createCircle([
+          "Four Unique Members Circle",
+          parseEther("1"),
+          30n,
+          2n,
+          0n,
+          members,
+        ])
+      ).to.be.fulfilled;
+    });
+
+    it("Should fail to create circle if a duplicate address exists in a larger ten member setup", async function () {
+      const { susuChain, owner, member1, member2, member3 } = await loadFixture(deploySusuChainFixture);
+      const ownerAddr = getAddress(owner.account.address);
+      const m1Addr = getAddress(member1.account.address);
+      const m2Addr = getAddress(member2.account.address);
+      const m3Addr = getAddress(member3.account.address);
+
+      const members = [
+        ownerAddr,
+        m1Addr,
+        m2Addr,
+        m3Addr,
+        getAddress("0x1111111111111111111111111111111111111111"),
+        getAddress("0x2222222222222222222222222222222222222222"),
+        getAddress("0x3333333333333333333333333333333333333333"),
+        m2Addr, // Duplicate of index 2
+        getAddress("0x4444444444444444444444444444444444444444"),
+        getAddress("0x5555555555555555555555555555555555555555"),
+      ];
+
+      await expect(
+        susuChain.write.createCircle([
+          "Ten Members Duplicate Circle",
+          parseEther("1"),
+          30n,
+          2n,
+          0n,
+          members,
+        ])
+      ).to.be.rejectedWith("Duplicate member addresses not allowed");
+    });
+
+    it("Should emit a CircleCreated event when a circle is successfully created with unique members", async function () {
+      const { susuChain, publicClient, owner, member1, member2 } = await loadFixture(deploySusuChainFixture);
+      const ownerAddr = getAddress(owner.account.address);
+      const m1Addr = getAddress(member1.account.address);
+      const m2Addr = getAddress(member2.account.address);
+      const members = [ownerAddr, m1Addr, m2Addr];
+
+      const hash = await susuChain.write.createCircle([
+        "Event Unique Members Circle",
+        parseEther("1"),
+        30n,
+        2n,
+        0n,
+        members,
+      ]);
+      await publicClient.waitForTransactionReceipt({ hash });
+
+      const events = await susuChain.getEvents.CircleCreated();
+      expect(events).to.have.lengthOf(1);
+      expect(events[0].args.creator).to.equal(ownerAddr);
+      expect(events[0].args.name).to.equal("Event Unique Members Circle");
+    });
+
+    it("Should verify that createCircle state fields are correctly populated with unique members", async function () {
+      const { susuChain, owner, member1, member2 } = await loadFixture(deploySusuChainFixture);
+      const ownerAddr = getAddress(owner.account.address);
+      const m1Addr = getAddress(member1.account.address);
+      const m2Addr = getAddress(member2.account.address);
+      const members = [ownerAddr, m1Addr, m2Addr];
+
+      await susuChain.write.createCircle([
+        "State Population Circle",
+        parseEther("1"),
+        30n,
+        2n,
+        0n,
+        members,
+      ]);
+
+      const circleCount = await susuChain.read.circleCount();
+      const circleId = circleCount - 1n;
+
+      const circleData = await susuChain.read.getCircle([circleId]);
+      expect(circleData[0]).to.equal("State Population Circle");
+      expect(circleData[1]).to.equal(parseEther("1"));
+      expect(circleData[2]).to.equal(30n * 24n * 60n * 60n);
+      expect(circleData[3]).to.have.lengthOf(3);
+      expect(getAddress(circleData[3][0])).to.equal(ownerAddr);
+      expect(getAddress(circleData[3][1])).to.equal(m1Addr);
+      expect(getAddress(circleData[3][2])).to.equal(m2Addr);
+      expect(circleData[6]).to.be.true;
+    });
+
+    it("Should verify that pause state prevents circle creation regardless of duplicate members", async function () {
+      const { susuChain, member1, member2 } = await loadFixture(deploySusuChainFixture);
+      const m1Addr = getAddress(member1.account.address);
+      const m2Addr = getAddress(member2.account.address);
+
+      await susuChain.write.pause();
+      expect(await susuChain.read.paused()).to.be.true;
+
+      const duplicateMembers = [m1Addr, m1Addr, m2Addr];
+      await expect(
+        susuChain.write.createCircle([
+          "Paused Duplicate Circle",
+          parseEther("1"),
+          30n,
+          2n,
+          0n,
+          duplicateMembers,
+        ])
+      ).to.be.rejectedWith("EnforcedPause()");
+
+      const uniqueMembers = [m1Addr, m2Addr];
+      await expect(
+        susuChain.write.createCircle([
+          "Paused Unique Circle",
+          parseEther("1"),
+          30n,
+          2n,
+          0n,
+          uniqueMembers,
+        ])
+      ).to.be.rejectedWith("EnforcedPause()");
+    });
+  });
+
   describe("Secure EVM Payout Fallback", function () {
     it("Should successfully payout directly to a standard EOA recipient", async function () {
       const { susuChain, member1, member2, publicClient } = await loadFixture(deploySusuChainFixture);

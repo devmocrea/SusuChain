@@ -70,6 +70,11 @@ contract SusuChain is Pausable {
         address[] memory members
     ) external whenNotPaused {
         require(members.length >= 2, "Minimum 2 members required");
+        for (uint256 i = 0; i < members.length; i++) {
+            for (uint256 j = i + 1; j < members.length; j++) {
+                require(members[i] != members[j], "Duplicate member addresses not allowed");
+            }
+        }
         require(contributionAmount >= minContributionAmount, "Contribution too low");
         require(contributionAmount <= maxContributionAmount, "Contribution too high");
         uint256 id = circleCount++;
