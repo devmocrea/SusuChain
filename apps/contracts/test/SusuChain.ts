@@ -670,5 +670,33 @@ describe("SusuChain", function () {
       expect(events[0].args.creator).to.equal(ownerAddr);
       expect(events[0].args.name).to.equal("Event Unique Members Circle");
     });
+
+    it("Should verify that createCircle state fields are correctly populated with unique members", async function () {
+      const { susuChain, owner, member1, member2 } = await loadFixture(deploySusuChainFixture);
+      const ownerAddr = getAddress(owner.account.address);
+      const m1Addr = getAddress(member1.account.address);
+      const m2Addr = getAddress(member2.account.address);
+      const members = [ownerAddr, m1Addr, m2Addr];
+
+      await susuChain.write.createCircle([
+        "State Population Circle",
+        parseEther("1"),
+        30n,
+        members,
+      ]);
+
+      const circleCount = await susuChain.read.circleCount();
+      const circleId = circleCount - 1n;
+
+      const circleData = await susuChain.read.getCircle([circleId]);
+      expect(circleData[0]).to.equal("State Population Circle");
+      expect(circleData[1]).to.equal(parseEther("1"));
+      expect(circleData[2]).to.equal(30n * 24n * 60n * 60n);
+      expect(circleData[3]).to.have.lengthOf(3);
+      expect(getAddress(circleData[3][0])).to.equal(ownerAddr);
+      expect(getAddress(circleData[3][1])).to.equal(m1Addr);
+      expect(getAddress(circleData[3][2])).to.equal(m2Addr);
+      expect(circleData[6]).to.be.true;
+    });
   });
 });
