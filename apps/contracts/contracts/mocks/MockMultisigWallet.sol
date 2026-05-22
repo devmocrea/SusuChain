@@ -30,6 +30,9 @@ contract MockMultisigWallet {
         threshold = _threshold;
     }
 
+    receive() external payable {}
+    fallback() external payable {}
+
     function submitTransaction(address to, uint256 value, bytes memory data) public returns (uint256) {
         transactions.push(Transaction({
             to: to,
