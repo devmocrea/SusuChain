@@ -289,4 +289,18 @@ describe("SusuChain Enhancements - Reputation, Registry, and Vault Tests", () =>
   it("verifies vitest environment is prepared for enhancement contracts", () => {
     expect(simnet.blockHeight).toBeDefined();
   });
+
+  it("verifies initial states and deployment of the enhancement contracts", () => {
+    // 1. susu-reputation check: initial reputation score is 100 for any address
+    const repRes = simnet.callReadOnlyFn("susu-reputation", "get-reputation-score", [Cl.principal(wallet1)], wallet1);
+    expect(repRes.result).toBeUint(100);
+
+    // 2. susu-registry check: initial registry count is 0
+    const regRes = simnet.callReadOnlyFn("susu-registry", "get-registry-count", [], wallet1);
+    expect(regRes.result).toBeUint(0);
+
+    // 3. susu-vault check: initial balance is 0 for circle 0
+    const vaultRes = simnet.callReadOnlyFn("susu-vault", "get-vault-balance", [Cl.uint(0)], wallet1);
+    expect(vaultRes.result).toBeUint(0);
+  });
 });
