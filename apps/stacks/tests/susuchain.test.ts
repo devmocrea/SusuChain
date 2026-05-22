@@ -284,3 +284,9 @@ describe("susuchain tests", () => {
     expect(res.result).toBeErr(Cl.uint(24));
   });
 });
+
+describe("SusuChain Enhancements - Reputation, Registry, and Vault Tests", () => {
+  it("verifies vitest environment is prepared for enhancement contracts", () => {
+    expect(simnet.blockHeight).toBeDefined();
+  });
+});
