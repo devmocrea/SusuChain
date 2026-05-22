@@ -303,4 +303,54 @@ describe("SusuChain Enhancements - Reputation, Registry, and Vault Tests", () =>
     const vaultRes = simnet.callReadOnlyFn("susu-vault", "get-vault-balance", [Cl.uint(0)], wallet1);
     expect(vaultRes.result).toBeUint(0);
   });
+
+  it("verifies reputation statistics update automatically on circle creation and contributions", () => {
+    // 1. Create a circle. This should increment wallet1's circles-joined via main susuchain hook
+    simnet.callPublicFn(
+      "susuchain",
+      "create-circle",
+      [
+        Cl.stringAscii("Susu Rep Test Circle"),
+        Cl.uint(1000000), // 1 STX
+        Cl.list([Cl.principal(wallet1), Cl.principal(wallet2)])
+      ],
+      wallet1
+    );
+
+    const statsBefore = simnet.callReadOnlyFn("susu-reputation", "get-member-stats", [Cl.principal(wallet1)], wallet1);
+    expect(statsBefore.result).toBeTuple({
+      "circles-joined": Cl.uint(1),
+      "successful-payments": Cl.uint(0),
+      "late-payments": Cl.uint(0)
+    });
+
+    // 2. Contribute to the circle. This should increment wallet1's successful-payments via main susuchain hook
+    simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet1);
+
+    const statsAfter = simnet.callReadOnlyFn("susu-reputation", "get-member-stats", [Cl.principal(wallet1)], wallet1);
+    expect(statsAfter.result).toBeTuple({
+      "circles-joined": Cl.uint(1),
+      "successful-payments": Cl.uint(1),
+      "late-payments": Cl.uint(0)
+    });
+
+    // Score should be 100
+    expect(simnet.callReadOnlyFn("susu-reputation", "get-reputation-score", [Cl.principal(wallet1)], wallet1).result).toBeUint(100);
+
+    // 3. Manually record a late payment as owner to verify reputation penalty score calculation
+    const deployer = "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM";
+    const recordLateRes = simnet.callPublicFn("susu-reputation", "record-late-payment", [Cl.principal(wallet1)], deployer);
+    expect(recordLateRes.result).toBeOk(Cl.bool(true));
+
+    // Stats should show 1 late payment
+    const statsAfterLate = simnet.callReadOnlyFn("susu-reputation", "get-member-stats", [Cl.principal(wallet1)], wallet1);
+    expect(statsAfterLate.result).toBeTuple({
+      "circles-joined": Cl.uint(1),
+      "successful-payments": Cl.uint(1),
+      "late-payments": Cl.uint(1)
+    });
+
+    // Reputation score: 1 success / 2 total = 50%
+    expect(simnet.callReadOnlyFn("susu-reputation", "get-reputation-score", [Cl.principal(wallet1)], wallet1).result).toBeUint(50);
+  });
 });
