@@ -91,3 +91,19 @@
     (ok true)
   )
 )
+
+;; ---- Owner Functions ----
+
+(define-public (set-trusted-contract (new-trusted principal))
+  (begin
+    (asserts! (is-owner) (err u401))
+    (ok (var-set trusted-contract new-trusted))
+  )
+)
+
+(define-public (set-owner (new-owner principal))
+  (begin
+    (asserts! (is-owner) (err u401))
+    (ok (var-set owner new-owner))
+  )
+)
