@@ -87,3 +87,37 @@
     (ok true)
   )
 )
+
+(define-public (payback-loan (circle-id uint))
+  (let (
+    (loan (unwrap! (get-active-loan circle-id) (err u404)))
+    (principal-amount (get amount loan))
+    (penalty-amount (get penalty loan))
+    (total-payback (+ principal-amount penalty-amount))
+    (current-bal (get-vault-balance circle-id))
+  )
+    (try! (stx-transfer? total-payback tx-sender (as-contract tx-sender)))
+    (map-set circle-vaults
+      { circle-id: circle-id }
+      { balance: (+ current-bal total-payback) }
+    )
+    (map-delete active-loans { circle-id: circle-id })
+    (ok true)
+  )
+)
+
+;; ---- Owner Functions ----
+
+(define-public (set-trusted-contract (new-trusted principal))
+  (begin
+    (asserts! (is-owner) (err u401))
+    (ok (var-set trusted-contract new-trusted))
+  )
+)
+
+(define-public (set-owner (new-owner principal))
+  (begin
+    (asserts! (is-owner) (err u401))
+    (ok (var-set owner new-owner))
+  )
+)
