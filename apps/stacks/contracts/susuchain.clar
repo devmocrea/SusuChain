@@ -60,6 +60,8 @@
   (let ((circle-id (var-get circle-count)))
     (asserts! (>= (len members) u2) (err u1))
     (asserts! (> contribution u0) (err u2))
+    (asserts! (<= contribution (/ u18446744073709551615 (len members))) (err u3))
+    (asserts! (< circle-id u18446744073709551615) (err u4))
     (map-set circles
       { circle-id: circle-id }
       {
@@ -72,6 +74,8 @@
     )
     (map-set round-balance { circle-id: circle-id } { balance: u0 })
     (var-set circle-count (+ circle-id u1))
+    (try! (contract-call? .susu-registry register-circle circle-id tx-sender name contribution (len members)))
+    (try! (contract-call? .susu-reputation record-circle-joined tx-sender))
     (print { event: "circle-created", circle-id: circle-id, creator: tx-sender, name: name })
     (ok circle-id)
   )
@@ -87,6 +91,7 @@
     (asserts! (get active circle) (err u11))
     (asserts! (is-some (index-of (get members circle) tx-sender)) (err u12))
     (asserts! (not (has-member-paid circle-id round tx-sender)) (err u13))
+    (asserts! (<= amount (- u18446744073709551615 bal)) (err u14))
     (try! (stx-transfer? amount tx-sender (as-contract tx-sender)))
     (map-set has-paid
       { circle-id: circle-id, round: round, member: tx-sender }
@@ -96,6 +101,7 @@
       { circle-id: circle-id }
       { balance: (+ bal amount) }
     )
+    (try! (contract-call? .susu-reputation record-successful-payment tx-sender))
     (print { event: "contribution-made", circle-id: circle-id, contributor: tx-sender, round: round })
     (ok true)
   )
@@ -112,6 +118,7 @@
   )
     (asserts! (get active circle) (err u23))
     (asserts! (is-eq tx-sender creator) (err u24))
+    (asserts! (< round u18446744073709551615) (err u25))
     (map-set round-balance { circle-id: circle-id } { balance: u0 })
     (map-set circles
       { circle-id: circle-id }
@@ -120,6 +127,7 @@
         active: (< (+ round u1) (len members))
       })
     )
+    (try! (contract-call? .susu-registry set-circle-active circle-id (< (+ round u1) (len members))))
     (try! (as-contract (stx-transfer? bal tx-sender recipient)))
     (print { event: "payout-sent", circle-id: circle-id, recipient: recipient, amount: bal, round: round })
     (ok true)
