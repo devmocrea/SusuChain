@@ -284,3 +284,198 @@ describe("susuchain tests", () => {
     expect(res.result).toBeErr(Cl.uint(24));
   });
 });
+
+describe("SusuChain Enhancements - Reputation, Registry, and Vault Tests", () => {
+  it("verifies vitest environment is prepared for enhancement contracts", () => {
+    expect(simnet.blockHeight).toBeDefined();
+  });
+
+  it("verifies initial states and deployment of the enhancement contracts", () => {
+    // 1. susu-reputation check: initial reputation score is 100 for any address
+    const repRes = simnet.callReadOnlyFn("susu-reputation", "get-reputation-score", [Cl.principal(wallet1)], wallet1);
+    expect(repRes.result).toBeUint(100);
+
+    // 2. susu-registry check: initial registry count is 0
+    const regRes = simnet.callReadOnlyFn("susu-registry", "get-registry-count", [], wallet1);
+    expect(regRes.result).toBeUint(0);
+
+    // 3. susu-vault check: initial balance is 0 for circle 0
+    const vaultRes = simnet.callReadOnlyFn("susu-vault", "get-vault-balance", [Cl.uint(0)], wallet1);
+    expect(vaultRes.result).toBeUint(0);
+  });
+
+  it("verifies reputation statistics update automatically on circle creation and contributions", () => {
+    // 1. Create a circle. This should increment wallet1's circles-joined via main susuchain hook
+    simnet.callPublicFn(
+      "susuchain",
+      "create-circle",
+      [
+        Cl.stringAscii("Susu Rep Test Circle"),
+        Cl.uint(1000000), // 1 STX
+        Cl.list([Cl.principal(wallet1), Cl.principal(wallet2)])
+      ],
+      wallet1
+    );
+
+    const statsBefore = simnet.callReadOnlyFn("susu-reputation", "get-member-stats", [Cl.principal(wallet1)], wallet1);
+    expect(statsBefore.result).toBeTuple({
+      "circles-joined": Cl.uint(1),
+      "successful-payments": Cl.uint(0),
+      "late-payments": Cl.uint(0)
+    });
+
+    // 2. Contribute to the circle. This should increment wallet1's successful-payments via main susuchain hook
+    simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet1);
+
+    const statsAfter = simnet.callReadOnlyFn("susu-reputation", "get-member-stats", [Cl.principal(wallet1)], wallet1);
+    expect(statsAfter.result).toBeTuple({
+      "circles-joined": Cl.uint(1),
+      "successful-payments": Cl.uint(1),
+      "late-payments": Cl.uint(0)
+    });
+
+    // Score should be 100
+    expect(simnet.callReadOnlyFn("susu-reputation", "get-reputation-score", [Cl.principal(wallet1)], wallet1).result).toBeUint(100);
+
+    // 3. Manually record a late payment as owner to verify reputation penalty score calculation
+    const deployer = "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM";
+    const recordLateRes = simnet.callPublicFn("susu-reputation", "record-late-payment", [Cl.principal(wallet1)], deployer);
+    expect(recordLateRes.result).toBeOk(Cl.bool(true));
+
+    // Stats should show 1 late payment
+    const statsAfterLate = simnet.callReadOnlyFn("susu-reputation", "get-member-stats", [Cl.principal(wallet1)], wallet1);
+    expect(statsAfterLate.result).toBeTuple({
+      "circles-joined": Cl.uint(1),
+      "successful-payments": Cl.uint(1),
+      "late-payments": Cl.uint(1)
+    });
+
+    // Reputation score: 1 success / 2 total = 50%
+    expect(simnet.callReadOnlyFn("susu-reputation", "get-reputation-score", [Cl.principal(wallet1)], wallet1).result).toBeUint(50);
+  });
+
+  it("verifies registry indexing and open circle discovery", () => {
+    // 1. Initially registry has 0 count
+    expect(simnet.callReadOnlyFn("susu-registry", "get-registry-count", [], wallet1).result).toBeUint(0);
+
+    // 2. Create circle
+    simnet.callPublicFn(
+      "susuchain",
+      "create-circle",
+      [
+        Cl.stringAscii("Registry Discovery Circle"),
+        Cl.uint(1000000), // 1 STX
+        Cl.list([Cl.principal(wallet1), Cl.principal(wallet2)])
+      ],
+      wallet1
+    );
+
+    // 3. Count should be 1, and map entry should exist with active: true
+    expect(simnet.callReadOnlyFn("susu-registry", "get-registry-count", [], wallet1).result).toBeUint(1);
+    const circleReg = simnet.callReadOnlyFn("susu-registry", "get-registered-circle", [Cl.uint(0)], wallet1);
+    expect(circleReg.result).toBeSome(
+      Cl.tuple({
+        creator: Cl.principal(wallet1),
+        name: Cl.stringAscii("Registry Discovery Circle"),
+        contribution: Cl.uint(1000000),
+        "member-count": Cl.uint(2),
+        active: Cl.bool(true)
+      })
+    );
+
+    // 4. Run through standard payouts to deactivate circle
+    simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet1);
+    simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet2);
+    simnet.callPublicFn("susuchain", "trigger-payout", [Cl.uint(0)], wallet1);
+
+    simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet1);
+    simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet2);
+    simnet.callPublicFn("susuchain", "trigger-payout", [Cl.uint(0)], wallet1);
+
+    // 5. Active should be false in the registry
+    const circleRegAfter = simnet.callReadOnlyFn("susu-registry", "get-registered-circle", [Cl.uint(0)], wallet1);
+    expect(circleRegAfter.result).toBeSome(
+      Cl.tuple({
+        creator: Cl.principal(wallet1),
+        name: Cl.stringAscii("Registry Discovery Circle"),
+        contribution: Cl.uint(1000000),
+        "member-count": Cl.uint(2),
+        active: Cl.bool(false)
+      })
+    );
+  });
+
+  it("verifies vault reserves and successful emergency loans", () => {
+    // 1. Initial vault balance is 0
+    expect(simnet.callReadOnlyFn("susu-vault", "get-vault-balance", [Cl.uint(0)], wallet1).result).toBeUint(0);
+
+    // 2. Deposit 5 STX to vault
+    const depositRes = simnet.callPublicFn("susu-vault", "deposit-to-vault", [Cl.uint(0), Cl.uint(5000000)], wallet1);
+    expect(depositRes.result).toBeOk(Cl.bool(true));
+
+    // 3. Vault balance should now be 5 STX
+    expect(simnet.callReadOnlyFn("susu-vault", "get-vault-balance", [Cl.uint(0)], wallet1).result).toBeUint(5000000);
+
+    // 4. Perform an emergency borrow of 2 STX using the deployer principal
+    const deployer = "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM";
+    const borrowRes = simnet.callPublicFn(
+      "susu-vault",
+      "emergency-borrow",
+      [
+        Cl.uint(0),
+        Cl.uint(2000000),
+        Cl.principal(wallet2)
+      ],
+      deployer
+    );
+    expect(borrowRes.result).toBeOk(Cl.bool(true));
+
+    // 5. Vault balance should be 3 STX
+    expect(simnet.callReadOnlyFn("susu-vault", "get-vault-balance", [Cl.uint(0)], wallet1).result).toBeUint(3000000);
+
+    // 6. Active loan mapping should exist
+    const activeLoan = simnet.callReadOnlyFn("susu-vault", "get-active-loan", [Cl.uint(0)], wallet1);
+    expect(activeLoan.result).toBeSome(
+      Cl.tuple({
+        amount: Cl.uint(2000000),
+        penalty: Cl.uint(200000),
+        recipient: Cl.principal(wallet2),
+        "paid-back": Cl.bool(false)
+      })
+    );
+  });
+
+  it("verifies payback penalty enforcement inside vault", () => {
+    // 1. Setup: Deposit 5 STX to vault
+    const depositRes = simnet.callPublicFn("susu-vault", "deposit-to-vault", [Cl.uint(0), Cl.uint(5000000)], wallet1);
+    expect(depositRes.result).toBeOk(Cl.bool(true));
+
+    // 2. Setup: Perform an emergency borrow of 2 STX using the deployer principal
+    const deployer = "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM";
+    const borrowRes = simnet.callPublicFn(
+      "susu-vault",
+      "emergency-borrow",
+      [
+        Cl.uint(0),
+        Cl.uint(2000000),
+        Cl.principal(wallet2)
+      ],
+      deployer
+    );
+    expect(borrowRes.result).toBeOk(Cl.bool(true));
+
+    // 3. Vault balance is 3 STX
+    expect(simnet.callReadOnlyFn("susu-vault", "get-vault-balance", [Cl.uint(0)], wallet1).result).toBeUint(3000000);
+
+    // 4. Pay back the loan (repay 2.2 STX: 2 STX principal + 0.2 STX penalty)
+    const paybackRes = simnet.callPublicFn("susu-vault", "payback-loan", [Cl.uint(0)], wallet2);
+    expect(paybackRes.result).toBeOk(Cl.bool(true));
+
+    // 5. Vault balance should now be 5.2 STX (5200000 micro-STX)
+    expect(simnet.callReadOnlyFn("susu-vault", "get-vault-balance", [Cl.uint(0)], wallet1).result).toBeUint(5200000);
+
+    // 6. Active loan should be deleted
+    const activeLoan = simnet.callReadOnlyFn("susu-vault", "get-active-loan", [Cl.uint(0)], wallet1);
+    expect(activeLoan.result).toBeNone();
+  });
+});

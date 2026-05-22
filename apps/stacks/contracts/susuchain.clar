@@ -74,6 +74,8 @@
     )
     (map-set round-balance { circle-id: circle-id } { balance: u0 })
     (var-set circle-count (+ circle-id u1))
+    (try! (contract-call? .susu-registry register-circle circle-id tx-sender name contribution (len members)))
+    (try! (contract-call? .susu-reputation record-circle-joined tx-sender))
     (print { event: "circle-created", circle-id: circle-id, creator: tx-sender, name: name })
     (ok circle-id)
   )
@@ -99,6 +101,7 @@
       { circle-id: circle-id }
       { balance: (+ bal amount) }
     )
+    (try! (contract-call? .susu-reputation record-successful-payment tx-sender))
     (print { event: "contribution-made", circle-id: circle-id, contributor: tx-sender, round: round })
     (ok true)
   )
@@ -124,6 +127,7 @@
         active: (< (+ round u1) (len members))
       })
     )
+    (try! (contract-call? .susu-registry set-circle-active circle-id (< (+ round u1) (len members))))
     (try! (as-contract (stx-transfer? bal tx-sender recipient)))
     (print { event: "payout-sent", circle-id: circle-id, recipient: recipient, amount: bal, round: round })
     (ok true)
