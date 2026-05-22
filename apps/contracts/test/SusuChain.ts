@@ -1,7 +1,7 @@
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox-viem/network-helpers";
 import { expect } from "chai";
 import hre from "hardhat";
-import { getAddress, parseEther } from "viem";
+import { getAddress, parseEther, encodeFunctionData } from "viem";
 
 describe("SusuChain", function () {
   async function deploySusuChainFixture() {
@@ -522,6 +522,53 @@ describe("SusuChain", function () {
       expect(await mockMultisig.read.owners([0n])).to.equal(ownersList[0]);
       expect(await mockMultisig.read.owners([1n])).to.equal(ownersList[1]);
       expect(await mockMultisig.read.owners([2n])).to.equal(ownersList[2]);
+    });
+
+    it("Should verify mock multisig can successfully create circles", async function () {
+      const { susuChain, mockMultisig, member1, member2, publicClient } = await loadFixture(deployMultisigFixture);
+
+      const createCircleData = encodeFunctionData({
+        abi: susuChain.abi,
+        functionName: "createCircle",
+        args: [
+          "Multisig Circle",
+          parseEther("1"),
+          30n,
+          [getAddress(mockMultisig.address), getAddress(member1.account.address)]
+        ]
+      });
+
+      const multisigAsMember1 = await hre.viem.getContractAt(
+        "MockMultisigWallet",
+        mockMultisig.address,
+        { client: { wallet: member1 } }
+      );
+      const multisigAsMember2 = await hre.viem.getContractAt(
+        "MockMultisigWallet",
+        mockMultisig.address,
+        { client: { wallet: member2 } }
+      );
+
+      const txHash = await multisigAsMember1.write.submitTransaction([
+        susuChain.address,
+        0n,
+        createCircleData
+      ]);
+      await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+      const confirm1Hash = await multisigAsMember1.write.confirmTransaction([0n]);
+      await publicClient.waitForTransactionReceipt({ hash: confirm1Hash });
+
+      const confirm2Hash = await multisigAsMember2.write.confirmTransaction([0n]);
+      await publicClient.waitForTransactionReceipt({ hash: confirm2Hash });
+
+      const executeHash = await multisigAsMember1.write.executeTransaction([0n]);
+      await publicClient.waitForTransactionReceipt({ hash: executeHash });
+
+      const circle = await susuChain.read.getCircle([0n]);
+      expect(circle[0]).to.equal("Multisig Circle");
+      expect(circle[1]).to.equal(parseEther("1"));
+      expect(circle[6]).to.be.true; // active
     });
   });
 });
