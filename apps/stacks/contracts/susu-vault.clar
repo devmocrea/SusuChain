@@ -62,3 +62,28 @@
     (ok true)
   )
 )
+
+(define-public (emergency-borrow (circle-id uint) (amount uint) (recipient principal))
+  (let (
+    (vault-bal (get-vault-balance circle-id))
+  )
+    (asserts! (is-trusted-caller) (err u403))
+    (asserts! (<= amount vault-bal) (err u2))
+    (asserts! (is-none (get-active-loan circle-id)) (err u3))
+    (map-set circle-vaults
+      { circle-id: circle-id }
+      { balance: (- vault-bal amount) }
+    )
+    (map-set active-loans
+      { circle-id: circle-id }
+      {
+        amount: amount,
+        penalty: (/ amount u10),
+        recipient: recipient,
+        paid-back: false
+      }
+    )
+    (try! (as-contract (stx-transfer? amount tx-sender recipient)))
+    (ok true)
+  )
+)
