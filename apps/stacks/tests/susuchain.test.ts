@@ -444,4 +444,38 @@ describe("SusuChain Enhancements - Reputation, Registry, and Vault Tests", () =>
       })
     );
   });
+
+  it("verifies payback penalty enforcement inside vault", () => {
+    // 1. Setup: Deposit 5 STX to vault
+    const depositRes = simnet.callPublicFn("susu-vault", "deposit-to-vault", [Cl.uint(0), Cl.uint(5000000)], wallet1);
+    expect(depositRes.result).toBeOk(Cl.bool(true));
+
+    // 2. Setup: Perform an emergency borrow of 2 STX using the deployer principal
+    const deployer = "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM";
+    const borrowRes = simnet.callPublicFn(
+      "susu-vault",
+      "emergency-borrow",
+      [
+        Cl.uint(0),
+        Cl.uint(2000000),
+        Cl.principal(wallet2)
+      ],
+      deployer
+    );
+    expect(borrowRes.result).toBeOk(Cl.bool(true));
+
+    // 3. Vault balance is 3 STX
+    expect(simnet.callReadOnlyFn("susu-vault", "get-vault-balance", [Cl.uint(0)], wallet1).result).toBeUint(3000000);
+
+    // 4. Pay back the loan (repay 2.2 STX: 2 STX principal + 0.2 STX penalty)
+    const paybackRes = simnet.callPublicFn("susu-vault", "payback-loan", [Cl.uint(0)], wallet2);
+    expect(paybackRes.result).toBeOk(Cl.bool(true));
+
+    // 5. Vault balance should now be 5.2 STX (5200000 micro-STX)
+    expect(simnet.callReadOnlyFn("susu-vault", "get-vault-balance", [Cl.uint(0)], wallet1).result).toBeUint(5200000);
+
+    // 6. Active loan should be deleted
+    const activeLoan = simnet.callReadOnlyFn("susu-vault", "get-active-loan", [Cl.uint(0)], wallet1);
+    expect(activeLoan.result).toBeNone();
+  });
 });
