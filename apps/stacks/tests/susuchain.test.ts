@@ -404,4 +404,44 @@ describe("SusuChain Enhancements - Reputation, Registry, and Vault Tests", () =>
       })
     );
   });
+
+  it("verifies vault reserves and successful emergency loans", () => {
+    // 1. Initial vault balance is 0
+    expect(simnet.callReadOnlyFn("susu-vault", "get-vault-balance", [Cl.uint(0)], wallet1).result).toBeUint(0);
+
+    // 2. Deposit 5 STX to vault
+    const depositRes = simnet.callPublicFn("susu-vault", "deposit-to-vault", [Cl.uint(0), Cl.uint(5000000)], wallet1);
+    expect(depositRes.result).toBeOk(Cl.bool(true));
+
+    // 3. Vault balance should now be 5 STX
+    expect(simnet.callReadOnlyFn("susu-vault", "get-vault-balance", [Cl.uint(0)], wallet1).result).toBeUint(5000000);
+
+    // 4. Perform an emergency borrow of 2 STX using the deployer principal
+    const deployer = "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM";
+    const borrowRes = simnet.callPublicFn(
+      "susu-vault",
+      "emergency-borrow",
+      [
+        Cl.uint(0),
+        Cl.uint(2000000),
+        Cl.principal(wallet2)
+      ],
+      deployer
+    );
+    expect(borrowRes.result).toBeOk(Cl.bool(true));
+
+    // 5. Vault balance should be 3 STX
+    expect(simnet.callReadOnlyFn("susu-vault", "get-vault-balance", [Cl.uint(0)], wallet1).result).toBeUint(3000000);
+
+    // 6. Active loan mapping should exist
+    const activeLoan = simnet.callReadOnlyFn("susu-vault", "get-active-loan", [Cl.uint(0)], wallet1);
+    expect(activeLoan.result).toBeSome(
+      Cl.tuple({
+        amount: Cl.uint(2000000),
+        penalty: Cl.uint(200000),
+        recipient: Cl.principal(wallet2),
+        "paid-back": Cl.bool(false)
+      })
+    );
+  });
 });
