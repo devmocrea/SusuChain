@@ -46,4 +46,23 @@ contract MockMultisigWallet {
         require(!isConfirmed[txId][msg.sender], "Transaction already confirmed");
         isConfirmed[txId][msg.sender] = true;
     }
+
+    function executeTransaction(uint256 txId) public returns (bytes memory) {
+        require(txId < transactions.length, "Transaction does not exist");
+        Transaction storage transaction = transactions[txId];
+        require(!transaction.executed, "Transaction already executed");
+        
+        uint256 count = 0;
+        for (uint256 i = 0; i < owners.length; i++) {
+            if (isConfirmed[txId][owners[i]]) {
+                count++;
+            }
+        }
+        require(count >= threshold, "Threshold not met");
+        
+        transaction.executed = true;
+        (bool success, bytes memory returnData) = transaction.to.call{value: transaction.value}(transaction.data);
+        require(success, "Transaction call reverted");
+        return returnData;
+    }
 }
