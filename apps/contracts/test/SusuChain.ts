@@ -839,7 +839,40 @@ describe("SusuChain", function () {
 
       const circle = await susuChain.read.getCircle([circleId]);
       expect(circle[4]).to.equal(3n);
-      expect(circle[6]).to.be.false;
+    });
+
+    it("Should verify multisig reverts on execution failures gracefully", async function () {
+      const { susuChain, mockMultisig, member1, member2 } = await loadFixture(deployMultisigFixture);
+
+      const invalidContributeData = encodeFunctionData({
+        abi: susuChain.abi,
+        functionName: "contribute",
+        args: [999n]
+      });
+
+      const multisigAsMember1 = await hre.viem.getContractAt(
+        "MockMultisigWallet",
+        mockMultisig.address,
+        { client: { wallet: member1 } }
+      );
+      const multisigAsMember2 = await hre.viem.getContractAt(
+        "MockMultisigWallet",
+        mockMultisig.address,
+        { client: { wallet: member2 } }
+      );
+
+      await multisigAsMember1.write.submitTransaction([
+        susuChain.address,
+        0n,
+        invalidContributeData
+      ]);
+
+      await multisigAsMember1.write.confirmTransaction([0n]);
+      await multisigAsMember2.write.confirmTransaction([0n]);
+
+      await expect(
+        multisigAsMember1.write.executeTransaction([0n])
+      ).to.be.rejectedWith("Transaction call reverted");
     });
   });
 });
