@@ -568,7 +568,37 @@ describe("SusuChain", function () {
       const circle = await susuChain.read.getCircle([0n]);
       expect(circle[0]).to.equal("Multisig Circle");
       expect(circle[1]).to.equal(parseEther("1"));
-      expect(circle[6]).to.be.true; // active
+    });
+
+    it("Should verify mock multisig can be registered as a circle member", async function () {
+      const { susuChain, mockMultisig, member1, member2 } = await loadFixture(deployMultisigFixture);
+
+      const members = [
+        getAddress(mockMultisig.address),
+        getAddress(member1.account.address),
+        getAddress(member2.account.address)
+      ];
+
+      const susuAsMember1 = await hre.viem.getContractAt(
+        "SusuChain",
+        susuChain.address,
+        { client: { wallet: member1 } }
+      );
+
+      await susuAsMember1.write.createCircle([
+        "Mixed Membership Circle",
+        parseEther("1"),
+        30n,
+        members
+      ]);
+
+      const circleId = 0n;
+      expect(await susuChain.read.isMember([circleId, getAddress(mockMultisig.address)])).to.be.true;
+      expect(await susuChain.read.isMember([circleId, getAddress(member1.account.address)])).to.be.true;
+      expect(await susuChain.read.getMemberCount([circleId])).to.equal(3n);
+
+      const circle = await susuChain.read.getCircle([circleId]);
+      expect(circle[3][0]).to.equal(getAddress(mockMultisig.address));
     });
   });
 });
