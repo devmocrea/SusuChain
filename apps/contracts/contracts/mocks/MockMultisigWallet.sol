@@ -14,6 +14,9 @@ contract MockMultisigWallet {
     uint256 public threshold;
     Transaction[] public transactions;
 
+    // txId => owner => confirmed
+    mapping(uint256 => mapping(address => bool)) public isConfirmed;
+
     constructor(address[] memory _owners, uint256 _threshold) {
         require(_owners.length > 0, "Owners required");
         require(_threshold > 0 && _threshold <= _owners.length, "Invalid threshold");
