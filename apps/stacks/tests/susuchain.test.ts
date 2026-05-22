@@ -353,4 +353,55 @@ describe("SusuChain Enhancements - Reputation, Registry, and Vault Tests", () =>
     // Reputation score: 1 success / 2 total = 50%
     expect(simnet.callReadOnlyFn("susu-reputation", "get-reputation-score", [Cl.principal(wallet1)], wallet1).result).toBeUint(50);
   });
+
+  it("verifies registry indexing and open circle discovery", () => {
+    // 1. Initially registry has 0 count
+    expect(simnet.callReadOnlyFn("susu-registry", "get-registry-count", [], wallet1).result).toBeUint(0);
+
+    // 2. Create circle
+    simnet.callPublicFn(
+      "susuchain",
+      "create-circle",
+      [
+        Cl.stringAscii("Registry Discovery Circle"),
+        Cl.uint(1000000), // 1 STX
+        Cl.list([Cl.principal(wallet1), Cl.principal(wallet2)])
+      ],
+      wallet1
+    );
+
+    // 3. Count should be 1, and map entry should exist with active: true
+    expect(simnet.callReadOnlyFn("susu-registry", "get-registry-count", [], wallet1).result).toBeUint(1);
+    const circleReg = simnet.callReadOnlyFn("susu-registry", "get-registered-circle", [Cl.uint(0)], wallet1);
+    expect(circleReg.result).toBeSome(
+      Cl.tuple({
+        creator: Cl.principal(wallet1),
+        name: Cl.stringAscii("Registry Discovery Circle"),
+        contribution: Cl.uint(1000000),
+        "member-count": Cl.uint(2),
+        active: Cl.bool(true)
+      })
+    );
+
+    // 4. Run through standard payouts to deactivate circle
+    simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet1);
+    simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet2);
+    simnet.callPublicFn("susuchain", "trigger-payout", [Cl.uint(0)], wallet1);
+
+    simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet1);
+    simnet.callPublicFn("susuchain", "contribute", [Cl.uint(0)], wallet2);
+    simnet.callPublicFn("susuchain", "trigger-payout", [Cl.uint(0)], wallet1);
+
+    // 5. Active should be false in the registry
+    const circleRegAfter = simnet.callReadOnlyFn("susu-registry", "get-registered-circle", [Cl.uint(0)], wallet1);
+    expect(circleRegAfter.result).toBeSome(
+      Cl.tuple({
+        creator: Cl.principal(wallet1),
+        name: Cl.stringAscii("Registry Discovery Circle"),
+        contribution: Cl.uint(1000000),
+        "member-count": Cl.uint(2),
+        active: Cl.bool(false)
+      })
+    );
+  });
 });

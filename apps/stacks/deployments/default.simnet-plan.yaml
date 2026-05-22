@@ -64,14 +64,14 @@ plan:
     - id: 0
       transactions:
         - emulated-contract-publish:
-            contract-name: susu-reputation
-            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            path: contracts/susu-reputation.clar
-            clarity-version: 3
-        - emulated-contract-publish:
             contract-name: susu-registry
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
             path: contracts/susu-registry.clar
+            clarity-version: 3
+        - emulated-contract-publish:
+            contract-name: susu-reputation
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/susu-reputation.clar
             clarity-version: 3
         - emulated-contract-publish:
             contract-name: susu-vault
