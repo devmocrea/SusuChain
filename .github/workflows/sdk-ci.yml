@@ -9,3 +9,8 @@ on:
     paths:
       - 'packages/sdk/**'
       - '.github/workflows/sdk-ci.yml'
+
+jobs:
+  build:
+    name: Build and Validate SDK
+    runs-on: ubuntu-latest
