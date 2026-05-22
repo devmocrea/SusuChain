@@ -29,3 +29,6 @@ jobs:
         with:
           node-version: '18.x'
           cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
