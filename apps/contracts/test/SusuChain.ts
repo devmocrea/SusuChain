@@ -483,4 +483,8 @@ describe("SusuChain", function () {
       expect(getAddress(events[0].args.account!)).to.equal(getAddress(owner.account.address));
     });
   });
+
+  describe("Smart Contract Wallet and Multisig Integration", function () {
+    // Test suite skeleton for multi-sig and smart contract wallet interactions
+  });
 });
