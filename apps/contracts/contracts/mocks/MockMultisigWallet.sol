@@ -9,6 +9,11 @@ contract MockMultisigWallet {
         bool executed;
     }
 
+    event Deposit(address indexed sender, uint256 amount, uint256 balance);
+    event SubmitTransaction(address indexed owner, uint256 indexed txId, address indexed to, uint256 value, bytes data);
+    event ConfirmTransaction(address indexed owner, uint256 indexed txId);
+    event ExecuteTransaction(address indexed owner, uint256 indexed txId);
+
     address[] public owners;
     mapping(address => bool) public isOwner;
     uint256 public threshold;
@@ -30,17 +35,25 @@ contract MockMultisigWallet {
         threshold = _threshold;
     }
 
-    receive() external payable {}
-    fallback() external payable {}
+    receive() external payable {
+        emit Deposit(msg.sender, msg.value, address(this).balance);
+    }
+
+    fallback() external payable {
+        emit Deposit(msg.sender, msg.value, address(this).balance);
+    }
 
     function submitTransaction(address to, uint256 value, bytes memory data) public returns (uint256) {
+        require(isOwner[msg.sender], "Not owner");
         transactions.push(Transaction({
             to: to,
             value: value,
             data: data,
             executed: false
         }));
-        return transactions.length - 1;
+        uint256 txId = transactions.length - 1;
+        emit SubmitTransaction(msg.sender, txId, to, value, data);
+        return txId;
     }
 
     function confirmTransaction(uint256 txId) public {
@@ -48,6 +61,7 @@ contract MockMultisigWallet {
         require(txId < transactions.length, "Transaction does not exist");
         require(!isConfirmed[txId][msg.sender], "Transaction already confirmed");
         isConfirmed[txId][msg.sender] = true;
+        emit ConfirmTransaction(msg.sender, txId);
     }
 
     function executeTransaction(uint256 txId) public returns (bytes memory) {
@@ -66,6 +80,8 @@ contract MockMultisigWallet {
         transaction.executed = true;
         (bool success, bytes memory returnData) = transaction.to.call{value: transaction.value}(transaction.data);
         require(success, "Transaction call reverted");
+        
+        emit ExecuteTransaction(msg.sender, txId);
         return returnData;
     }
 }
