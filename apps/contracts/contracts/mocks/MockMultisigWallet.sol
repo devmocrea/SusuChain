@@ -39,4 +39,11 @@ contract MockMultisigWallet {
         }));
         return transactions.length - 1;
     }
+
+    function confirmTransaction(uint256 txId) public {
+        require(isOwner[msg.sender], "Not owner");
+        require(txId < transactions.length, "Transaction does not exist");
+        require(!isConfirmed[txId][msg.sender], "Transaction already confirmed");
+        isConfirmed[txId][msg.sender] = true;
+    }
 }
