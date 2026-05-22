@@ -485,6 +485,43 @@ describe("SusuChain", function () {
   });
 
   describe("Smart Contract Wallet and Multisig Integration", function () {
-    // Test suite skeleton for multi-sig and smart contract wallet interactions
+    async function deployMultisigFixture() {
+      const { susuChain, owner, member1, member2, member3, publicClient } = await loadFixture(deploySusuChainFixture);
+      const ownersList = [
+        getAddress(member1.account.address),
+        getAddress(member2.account.address),
+        getAddress(member3.account.address),
+      ];
+      const thresholdVal = 2n;
+
+      const mockMultisig = await hre.viem.deployContract("MockMultisigWallet", [
+        ownersList,
+        thresholdVal,
+      ]);
+
+      return {
+        susuChain,
+        owner,
+        member1,
+        member2,
+        member3,
+        publicClient,
+        mockMultisig,
+        ownersList,
+        thresholdVal,
+      };
+    }
+
+    it("Should correctly deploy MockMultisigWallet with owners and threshold", async function () {
+      const { mockMultisig, ownersList, thresholdVal } = await loadFixture(deployMultisigFixture);
+
+      expect(await mockMultisig.read.threshold()).to.equal(thresholdVal);
+      expect(await mockMultisig.read.isOwner([ownersList[0]])).to.be.true;
+      expect(await mockMultisig.read.isOwner([ownersList[1]])).to.be.true;
+      expect(await mockMultisig.read.isOwner([ownersList[2]])).to.be.true;
+      expect(await mockMultisig.read.owners([0n])).to.equal(ownersList[0]);
+      expect(await mockMultisig.read.owners([1n])).to.equal(ownersList[1]);
+      expect(await mockMultisig.read.owners([2n])).to.equal(ownersList[2]);
+    });
   });
 });
