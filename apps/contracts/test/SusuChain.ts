@@ -732,7 +732,114 @@ describe("SusuChain", function () {
       await publicClient.waitForTransactionReceipt({ hash: contributeTx });
 
       const balanceAfter = await publicClient.getBalance({ address: getAddress(mockMultisig.address) });
-      expect(balanceAfter - balanceBefore).to.equal(parseEther("2"));
+    });
+
+    it("Should verify rotating payout sequence with mixed EOAs and multisig accounts", async function () {
+      const { susuChain, mockMultisig, member1, member2, publicClient } = await loadFixture(deployMultisigFixture);
+
+      const members = [
+        getAddress(mockMultisig.address),
+        getAddress(member1.account.address),
+        getAddress(member2.account.address)
+      ];
+
+      const susuAsMember1 = await hre.viem.getContractAt(
+        "SusuChain",
+        susuChain.address,
+        { client: { wallet: member1 } }
+      );
+      const susuAsMember2 = await hre.viem.getContractAt(
+        "SusuChain",
+        susuChain.address,
+        { client: { wallet: member2 } }
+      );
+
+      await susuAsMember1.write.createCircle([
+        "Mixed Rotation Circle",
+        parseEther("1"),
+        30n,
+        members
+      ]);
+
+      const circleId = 0n;
+
+      const fundTx = await member1.sendTransaction({
+        to: getAddress(mockMultisig.address),
+        value: parseEther("5")
+      });
+      await publicClient.waitForTransactionReceipt({ hash: fundTx });
+
+      const contributeData = encodeFunctionData({
+        abi: susuChain.abi,
+        functionName: "contribute",
+        args: [circleId]
+      });
+
+      const multisigAsMember1 = await hre.viem.getContractAt(
+        "MockMultisigWallet",
+        mockMultisig.address,
+        { client: { wallet: member1 } }
+      );
+      const multisigAsMember2 = await hre.viem.getContractAt(
+        "MockMultisigWallet",
+        mockMultisig.address,
+        { client: { wallet: member2 } }
+      );
+
+      // --- ROUND 0 ---
+      const initialMultisigBalance = await publicClient.getBalance({ address: getAddress(mockMultisig.address) });
+
+      const txHash0 = await multisigAsMember1.write.submitTransaction([susuChain.address, parseEther("1"), contributeData]);
+      await publicClient.waitForTransactionReceipt({ hash: txHash0 });
+      await multisigAsMember1.write.confirmTransaction([0n]);
+      await multisigAsMember2.write.confirmTransaction([0n]);
+      await multisigAsMember1.write.executeTransaction([0n]);
+
+      await susuAsMember1.write.contribute([circleId], { value: parseEther("1") });
+      await susuAsMember2.write.contribute([circleId], { value: parseEther("1") });
+
+      const round0MultisigBalance = await publicClient.getBalance({ address: getAddress(mockMultisig.address) });
+      expect(round0MultisigBalance - initialMultisigBalance).to.equal(parseEther("2"));
+
+      // --- ROUND 1 ---
+      const initialMember1Balance = await publicClient.getBalance({ address: getAddress(member1.account.address) });
+
+      const txHash1 = await multisigAsMember1.write.submitTransaction([susuChain.address, parseEther("1"), contributeData]);
+      await publicClient.waitForTransactionReceipt({ hash: txHash1 });
+      await multisigAsMember1.write.confirmTransaction([1n]);
+      await multisigAsMember2.write.confirmTransaction([1n]);
+      await multisigAsMember1.write.executeTransaction([1n]);
+
+      const m1ContributeTx = await susuAsMember1.write.contribute([circleId], { value: parseEther("1") });
+      const m1Receipt = await publicClient.waitForTransactionReceipt({ hash: m1ContributeTx });
+      const m1ContributeGasUsed = m1Receipt.gasUsed * m1Receipt.effectiveGasPrice;
+
+      await susuAsMember2.write.contribute([circleId], { value: parseEther("1") });
+
+      const round1Member1Balance = await publicClient.getBalance({ address: getAddress(member1.account.address) });
+      expect(round1Member1Balance - initialMember1Balance + m1ContributeGasUsed > parseEther("1.9")).to.be.true;
+
+      // --- ROUND 2 ---
+      const initialMember2Balance = await publicClient.getBalance({ address: getAddress(member2.account.address) });
+
+      const txHash2 = await multisigAsMember1.write.submitTransaction([susuChain.address, parseEther("1"), contributeData]);
+      await publicClient.waitForTransactionReceipt({ hash: txHash2 });
+      await multisigAsMember1.write.confirmTransaction([2n]);
+      await multisigAsMember2.write.confirmTransaction([2n]);
+      await multisigAsMember1.write.executeTransaction([2n]);
+
+      await susuAsMember1.write.contribute([circleId], { value: parseEther("1") });
+
+      const m2ContributeTx = await susuAsMember2.write.contribute([circleId], { value: parseEther("1") });
+      const m2Receipt = await publicClient.waitForTransactionReceipt({ hash: m2ContributeTx });
+      const m2ContributeGasUsed = m2Receipt.gasUsed * m2Receipt.effectiveGasPrice;
+
+      const round2Member2Balance = await publicClient.getBalance({ address: getAddress(member2.account.address) });
+      expect(round2Member2Balance - initialMember2Balance + m2ContributeGasUsed > parseEther("1.9")).to.be.true;
+
+      const circle = await susuChain.read.getCircle([circleId]);
+      expect(circle[4]).to.equal(3n);
+      expect(circle[6]).to.be.false;
     });
   });
 });
