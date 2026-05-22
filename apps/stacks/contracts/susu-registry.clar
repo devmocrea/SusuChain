@@ -31,3 +31,38 @@
     (is-eq tx-sender (var-get owner))
   )
 )
+
+;; ---- Read-only Functions ----
+
+(define-read-only (get-registered-circle (circle-id uint))
+  (map-get? registered-circles { circle-id: circle-id })
+)
+
+(define-read-only (get-registry-count)
+  (var-get registry-count)
+)
+
+;; ---- Public Functions ----
+
+(define-public (register-circle
+  (circle-id uint)
+  (creator principal)
+  (name (string-ascii 50))
+  (contribution uint)
+  (member-count uint))
+  (begin
+    (asserts! (is-trusted-caller) (err u403))
+    (map-set registered-circles
+      { circle-id: circle-id }
+      {
+        creator: creator,
+        name: name,
+        contribution: contribution,
+        member-count: member-count,
+        active: true
+      }
+    )
+    (var-set registry-count (+ (var-get registry-count) u1))
+    (ok true)
+  )
+)
