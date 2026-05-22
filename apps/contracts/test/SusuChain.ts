@@ -874,5 +874,73 @@ describe("SusuChain", function () {
         multisigAsMember1.write.executeTransaction([0n])
       ).to.be.rejectedWith("Transaction call reverted");
     });
+
+    it("Should verify multiple owners requirement for multisig actions", async function () {
+      const { susuChain, mockMultisig, member1, member2, publicClient } = await loadFixture(deployMultisigFixture);
+
+      const members = [
+        getAddress(mockMultisig.address),
+        getAddress(member1.account.address)
+      ];
+
+      const susuAsMember1 = await hre.viem.getContractAt(
+        "SusuChain",
+        susuChain.address,
+        { client: { wallet: member1 } }
+      );
+
+      await susuAsMember1.write.createCircle([
+        "Multisig Threshold Circle",
+        parseEther("1"),
+        30n,
+        members
+      ]);
+
+      const circleId = 0n;
+
+      const contributeData = encodeFunctionData({
+        abi: susuChain.abi,
+        functionName: "contribute",
+        args: [circleId]
+      });
+
+      const multisigAsMember1 = await hre.viem.getContractAt(
+        "MockMultisigWallet",
+        mockMultisig.address,
+        { client: { wallet: member1 } }
+      );
+      const multisigAsMember2 = await hre.viem.getContractAt(
+        "MockMultisigWallet",
+        mockMultisig.address,
+        { client: { wallet: member2 } }
+      );
+
+      const txHash = await multisigAsMember1.write.submitTransaction([
+        susuChain.address,
+        parseEther("1"),
+        contributeData
+      ]);
+      await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+      const confirm1Hash = await multisigAsMember1.write.confirmTransaction([0n]);
+      await publicClient.waitForTransactionReceipt({ hash: confirm1Hash });
+
+      await expect(
+        multisigAsMember1.write.executeTransaction([0n])
+      ).to.be.rejectedWith("Threshold not met");
+
+      const fundTx = await member1.sendTransaction({
+        to: getAddress(mockMultisig.address),
+        value: parseEther("2")
+      });
+      await publicClient.waitForTransactionReceipt({ hash: fundTx });
+
+      const confirm2Hash = await multisigAsMember2.write.confirmTransaction([0n]);
+      await publicClient.waitForTransactionReceipt({ hash: confirm2Hash });
+
+      await expect(
+        multisigAsMember1.write.executeTransaction([0n])
+      ).to.be.fulfilled;
+    });
   });
 });
