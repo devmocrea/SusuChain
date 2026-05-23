@@ -29,6 +29,7 @@
     "@stacks/connect": "^8.0.0"
   },
   "devDependencies": {
+    "tsup": "^8.0.2",
     "typescript": "^5.0.0"
   }
 }
