@@ -18,6 +18,7 @@
   ],
   "scripts": {
     "build": "tsup",
+    "test": "node test-cjs.js && node test-esm.mjs",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
