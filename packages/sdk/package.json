@@ -3,12 +3,22 @@
   "version": "1.0.0",
   "description": "SDK for SusuChain community savings protocol on Celo and Stacks",
   "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "module": "dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsup",
+    "test": "node test-cjs.js && node test-esm.mjs",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -29,6 +39,7 @@
     "@stacks/connect": "^8.0.0"
   },
   "devDependencies": {
+    "tsup": "^8.0.2",
     "typescript": "^5.0.0"
   }
 }
