@@ -1,4 +1,4 @@
-import { SUSUCHAIN_CELO_ADDRESS, STACKS_CONTRACT_NAME } from "./dist/index.js";
+import { SUSUCHAIN_CELO_ADDRESS, STACKS_CONTRACT_NAME } from "./dist/index.mjs";
 
 if (SUSUCHAIN_CELO_ADDRESS !== "0x20B421Db767D3496E4489Db5C3122C1fD4625525") {
   throw new Error("Invalid Celo contract address exported in ES Module");
