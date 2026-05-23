@@ -19,6 +19,20 @@ npm install susuchain-sdk viem @stacks/network @stacks/transactions @stacks/conn
 
 ## Usage
 
+This SDK natively supports both **ES Modules (ESM)** and **CommonJS (CJS)** module systems.
+
+### 📦 Importing the SDK
+
+#### Using ES Modules (import)
+```typescript
+import { SUSUCHAIN_CELO_ADDRESS, STACKS_CONTRACT_NAME } from 'susuchain-sdk';
+```
+
+#### Using CommonJS (require)
+```javascript
+const { SUSUCHAIN_CELO_ADDRESS, STACKS_CONTRACT_NAME } = require('susuchain-sdk');
+```
+
 ### 🟡 Celo Integration (Viem)
 
 You can easily interact with the SusuChain smart contract on Celo using `viem`:
