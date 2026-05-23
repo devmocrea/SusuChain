@@ -79,6 +79,10 @@ callContribute(0, (data) => {
 - `STACKS_CONTRACT_NAME`: The contract name (`"susuchain"`).
 - `STACKS_NETWORK`: The Stacks network configuration object (Mainnet).
 
+## Tracking
+
+This release satisfies clean ES Modules and CommonJS packaging guidelines in alignment with issue #27.
+
 ## License
 
 MIT
