@@ -971,6 +971,12 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: "monospace",
     flex: 1,
   },
+  copySuccess: {
+    color: "#22c55e",
+    fontSize: 11,
+    marginLeft: 6,
+    fontWeight: 600,
+  },
   statusBadge: {
     padding: "2px 8px",
     borderRadius: 12,
