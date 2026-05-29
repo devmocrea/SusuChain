@@ -78,6 +78,12 @@ export default function Home() {
   const truncate = (addr: string) =>
     addr.slice(0, 6) + "..." + addr.slice(-4);
 
+  const handleCopyAddress = (addr: string) => {
+    navigator.clipboard.writeText(addr);
+    setCopiedAddress(addr);
+    setTimeout(() => setCopiedAddress(null), 2000);
+  };
+
   const accent = activeChain === "celo" ? CELO_ACCENT : STACKS_ACCENT;
 
   // --- Celo Handlers ---
