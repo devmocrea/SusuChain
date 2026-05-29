@@ -212,6 +212,124 @@ export default function Home() {
     }
   };
 
+  const handleCeloCreateConfirm = async () => {
+    if (!circleName || !contributionCelo || !cycleDays || !membersRaw) {
+      setCeloStatus("❌ Please fill in all fields");
+      return;
+    }
+
+    const memberList = membersRaw
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    setModalConfig({
+      isOpen: true,
+      title: "Confirm savings circle creation",
+      details: [
+        { label: "Circle Name", value: circleName },
+        { label: "Contribution Amount", value: `${contributionCelo} CELO` },
+        { label: "Cycle Duration", value: `${cycleDays} days` },
+        { label: "Total Members", value: `${memberList.length} addresses` },
+      ],
+      estimatedFee: "Estimating fee...",
+      isLoadingFee: true,
+      onConfirm: async () => {
+        setModalConfig(null);
+        await handleCeloCreate();
+      },
+    });
+
+    try {
+      const weiAmount = parseUnits(contributionCelo, 18);
+      const gasLimit = await publicClient.estimateContractGas({
+        address: SUSUCHAIN_CELO_ADDRESS,
+        abi: SUSUCHAIN_CELO_ABI,
+        functionName: "createCircle",
+        args: [circleName, weiAmount, BigInt(cycleDays), memberList],
+        account: address as `0x${string}`,
+      });
+      const gasPrice = await publicClient.getGasPrice();
+      const fee = gasLimit * gasPrice;
+      const formattedFee = formatUnits(fee, 18);
+      
+      setModalConfig((prev) =>
+        prev
+          ? {
+              ...prev,
+              estimatedFee: `${parseFloat(formattedFee).toFixed(6)} CELO`,
+              isLoadingFee: false,
+            }
+          : null
+      );
+    } catch (err: any) {
+      setModalConfig((prev) =>
+        prev
+          ? {
+              ...prev,
+              estimatedFee: "Failed to estimate fee",
+              isLoadingFee: false,
+            }
+          : null
+      );
+    }
+  };
+
+  const handleCeloContributeConfirm = async () => {
+    if (!circleDetails) return;
+
+    setModalConfig({
+      isOpen: true,
+      title: "Confirm circle contribution",
+      details: [
+        { label: "Circle ID", value: circleId },
+        { label: "Circle Name", value: circleDetails[0] },
+        { label: "Contribution Amount", value: `${formatUnits(circleDetails[1], 18)} CELO` },
+        { label: "Current Round", value: circleDetails[4]?.toString() },
+      ],
+      estimatedFee: "Estimating fee...",
+      isLoadingFee: true,
+      onConfirm: async () => {
+        setModalConfig(null);
+        await handleCeloContribute();
+      },
+    });
+
+    try {
+      const gasLimit = await publicClient.estimateContractGas({
+        address: SUSUCHAIN_CELO_ADDRESS,
+        abi: SUSUCHAIN_CELO_ABI,
+        functionName: "contribute",
+        args: [BigInt(circleId)],
+        value: BigInt(circleDetails[1].toString()),
+        account: address as `0x${string}`,
+      });
+      const gasPrice = await publicClient.getGasPrice();
+      const fee = gasLimit * gasPrice;
+      const formattedFee = formatUnits(fee, 18);
+
+      setModalConfig((prev) =>
+        prev
+          ? {
+              ...prev,
+              estimatedFee: `${parseFloat(formattedFee).toFixed(6)} CELO`,
+              isLoadingFee: false,
+            }
+          : null
+      );
+    } catch (err: any) {
+      setModalConfig((prev) =>
+        prev
+          ? {
+              ...prev,
+              estimatedFee: "Failed to estimate fee",
+              isLoadingFee: false,
+            }
+          : null
+      );
+    }
+  };
+
   // --- Stacks Handlers ---
   const handleStacksCreate = () => {
     try {
