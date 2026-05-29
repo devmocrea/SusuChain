@@ -767,6 +767,54 @@ export default function Home() {
         </>
       )}
 
+      {modalConfig && modalConfig.isOpen && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modalContent}>
+            <h3 style={styles.modalTitle}>{modalConfig.title}</h3>
+            
+            <div style={styles.modalDetails}>
+              {modalConfig.details.map((detail, index) => (
+                <div key={index} style={styles.modalDetailRow}>
+                  <span style={styles.modalDetailLabel}>{detail.label}:</span>
+                  <span style={styles.modalDetailValue}>{detail.value}</span>
+                </div>
+              ))}
+            </div>
+
+            <div style={styles.feeContainer}>
+              <div style={styles.feeTitle}>Estimated Network Fee</div>
+              <div style={styles.feeValue}>
+                {modalConfig.isLoadingFee ? (
+                  <span style={styles.feeLoading}>⏳ Estimating fee...</span>
+                ) : (
+                  <span style={styles.feeAmount}>{modalConfig.estimatedFee}</span>
+                )}
+              </div>
+            </div>
+
+            <div style={styles.modalActions}>
+              <button 
+                style={styles.modalCancelBtn} 
+                onClick={() => setModalConfig(null)}
+              >
+                Cancel
+              </button>
+              <button 
+                style={{
+                  ...styles.modalConfirmBtn,
+                  opacity: modalConfig.isLoadingFee ? 0.6 : 1,
+                  cursor: modalConfig.isLoadingFee ? "not-allowed" : "pointer",
+                }} 
+                onClick={modalConfig.onConfirm}
+                disabled={modalConfig.isLoadingFee}
+              >
+                Confirm &amp; Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
       <div style={styles.footer}>
         <p>SusuChain — Community Savings on Celo &amp; Stacks</p>
