@@ -130,9 +130,10 @@ export default function Home() {
       });
       setCircleDetails(data);
 
+      const circleData = data as any;
       const circleIdBigInt = BigInt(circleId);
-      const currentRoundBigInt = data[4];
-      const members = data[3] as readonly `0x${string}`[];
+      const currentRoundBigInt = circleData[4];
+      const members = circleData[3] as readonly `0x${string}`[];
 
       const paymentStatusMap: { [address: string]: boolean } = {};
       if (members && members.length > 0) {
