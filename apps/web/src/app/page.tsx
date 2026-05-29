@@ -52,8 +52,17 @@ export default function Home() {
   const [membersPaymentStatus, setMembersPaymentStatus] = useState<{
     [address: string]: boolean;
   }>({});
-  const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
   const [contributeStatus, setContributeStatus] = useState("");
+
+  // --- Gas Confirmation Modal State ---
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    details: { label: string; value: string }[];
+    estimatedFee: string;
+    isLoadingFee: boolean;
+    onConfirm: () => Promise<void> | void;
+  } | null>(null);
 
   // --- Stacks Create State ---
   const [sName, setSName] = useState("");
