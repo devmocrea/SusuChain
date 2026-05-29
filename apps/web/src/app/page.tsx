@@ -49,6 +49,10 @@ export default function Home() {
   // --- Celo Contribute State ---
   const [circleId, setCircleId] = useState("");
   const [circleDetails, setCircleDetails] = useState<any>(null);
+  const [membersPaymentStatus, setMembersPaymentStatus] = useState<{
+    [address: string]: boolean;
+  }>({});
+  const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
   const [contributeStatus, setContributeStatus] = useState("");
 
   // --- Stacks Create State ---
@@ -73,6 +77,12 @@ export default function Home() {
   // --- Helpers ---
   const truncate = (addr: string) =>
     addr.slice(0, 6) + "..." + addr.slice(-4);
+
+  const handleCopyAddress = (addr: string) => {
+    navigator.clipboard.writeText(addr);
+    setCopiedAddress(addr);
+    setTimeout(() => setCopiedAddress(null), 2000);
+  };
 
   const accent = activeChain === "celo" ? CELO_ACCENT : STACKS_ACCENT;
 
@@ -119,10 +129,32 @@ export default function Home() {
         args: [BigInt(circleId)],
       });
       setCircleDetails(data);
+
+      const circleData = data as any;
+      const circleIdBigInt = BigInt(circleId);
+      const currentRoundBigInt = circleData[4];
+      const members = circleData[3] as readonly `0x${string}`[];
+
+      const paymentStatusMap: { [address: string]: boolean } = {};
+      if (members && members.length > 0) {
+        await Promise.all(
+          members.map(async (member) => {
+            const paid = await publicClient.readContract({
+              address: SUSUCHAIN_CELO_ADDRESS,
+              abi: SUSUCHAIN_CELO_ABI,
+              functionName: "hasPaid",
+              args: [circleIdBigInt, currentRoundBigInt, member],
+            });
+            paymentStatusMap[member] = paid as boolean;
+          })
+        );
+      }
+      setMembersPaymentStatus(paymentStatusMap);
       setContributeStatus("");
     } catch (err: any) {
       setContributeStatus(`❌ ${err.message}`);
       setCircleDetails(null);
+      setMembersPaymentStatus({});
       captureWeb3Error(err, {
         chain: "celo",
         contractAddress: SUSUCHAIN_CELO_ADDRESS,
@@ -155,6 +187,9 @@ export default function Home() {
       const hash = await walletClient.writeContract(request);
 
       setContributeStatus(`✅ TX: ${hash}`);
+      await publicClient.waitForTransactionReceipt({ hash });
+      await handleLoadCircle();
+      setContributeStatus(`✅ TX: ${hash} (Confirmed & Updated!)`);
     } catch (err: any) {
       setContributeStatus(`❌ ${err.message}`);
       captureWeb3Error(err, {
@@ -438,6 +473,58 @@ export default function Home() {
                         <strong>Active:</strong>{" "}
                         {circleDetails[6] ? "✅ Yes" : "❌ No"}
                       </p>
+                    </div>
+                  )}
+
+                  {circleDetails && circleDetails[3] && (
+                    <div style={styles.checklistContainer}>
+                      <h4 style={styles.checklistTitle}>
+                        Round {circleDetails[4]?.toString()} Contribution Checklist
+                      </h4>
+                      <div style={styles.checklistList}>
+                        {circleDetails[3].map((member: string) => {
+                          const hasPaidCurrentRound = !!membersPaymentStatus[member];
+                          const isCurrentUser = address?.toLowerCase() === member.toLowerCase();
+                          return (
+                            <div key={member} style={styles.checklistItem}>
+                              <div style={styles.checklistCheckboxContainer}>
+                                {hasPaidCurrentRound ? (
+                                  <div style={styles.checkedIndicator}>
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                      <path d="M10 3L4.5 8.5L2 6" stroke="#0a0a0a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                  </div>
+                                ) : (
+                                  <div style={styles.uncheckedIndicator} />
+                                )}
+                              </div>
+                              <span 
+                                onClick={() => handleCopyAddress(member)}
+                                title="Click to copy address"
+                                style={{
+                                  ...styles.memberAddress,
+                                  color: isCurrentUser ? CELO_ACCENT : "#fff",
+                                  fontWeight: isCurrentUser ? 700 : 400,
+                                  cursor: "pointer",
+                                }}
+                              >
+                                {truncate(member)} {isCurrentUser && " (You)"}
+                                {copiedAddress === member && (
+                                  <span style={styles.copySuccess}> (Copied!)</span>
+                                )}
+                              </span>
+                              <span style={{
+                                ...styles.statusBadge,
+                                backgroundColor: hasPaidCurrentRound ? "rgba(34, 197, 94, 0.1)" : "rgba(156, 163, 175, 0.1)",
+                                color: hasPaidCurrentRound ? "#22c55e" : "#9ca3af",
+                                borderColor: hasPaidCurrentRound ? "rgba(34, 197, 94, 0.2)" : "rgba(156, 163, 175, 0.2)",
+                              }}>
+                                {hasPaidCurrentRound ? "Paid" : "Pending"}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
 
@@ -827,6 +914,78 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 12,
     fontSize: 14,
     lineHeight: 1.8,
+    boxSizing: "border-box" as const,
+  },
+  checklistContainer: {
+    backgroundColor: "#161616",
+    border: "1px solid #2c2c2c",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  checklistTitle: {
+    fontSize: 13,
+    fontWeight: 700,
+    color: "#a3a3a3",
+    textTransform: "uppercase" as const,
+    letterSpacing: "0.05em",
+    marginTop: 0,
+    marginBottom: 14,
+  },
+  checklistList: {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: 8,
+  },
+  checklistItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#1d1d1d",
+    border: "1px solid #2a2a2a",
+    borderRadius: 8,
+    padding: "8px 12px",
+  },
+  checklistCheckboxContainer: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkedIndicator: {
+    width: 20,
+    height: 20,
+    borderRadius: "50%",
+    backgroundColor: "#22c55e",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  uncheckedIndicator: {
+    width: 20,
+    height: 20,
+    borderRadius: "50%",
+    border: "2px solid #525252",
+    backgroundColor: "transparent",
+    boxSizing: "border-box" as const,
+  },
+  memberAddress: {
+    fontSize: 14,
+    fontFamily: "monospace",
+    flex: 1,
+  },
+  copySuccess: {
+    color: "#22c55e",
+    fontSize: 11,
+    marginLeft: 6,
+    fontWeight: 600,
+  },
+  statusBadge: {
+    padding: "2px 8px",
+    borderRadius: 12,
+    fontSize: 11,
+    fontWeight: 700,
+    textTransform: "uppercase" as const,
+    border: "1px solid",
   },
   footer: {
     marginTop: "auto",
