@@ -49,6 +49,9 @@ export default function Home() {
   // --- Celo Contribute State ---
   const [circleId, setCircleId] = useState("");
   const [circleDetails, setCircleDetails] = useState<any>(null);
+  const [membersPaymentStatus, setMembersPaymentStatus] = useState<{
+    [address: string]: boolean;
+  }>({});
   const [contributeStatus, setContributeStatus] = useState("");
 
   // --- Stacks Create State ---
