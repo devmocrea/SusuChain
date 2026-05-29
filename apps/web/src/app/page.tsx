@@ -913,6 +913,7 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 12,
     fontSize: 14,
     lineHeight: 1.8,
+    boxSizing: "border-box" as const,
   },
   checklistContainer: {
     backgroundColor: "#161616",
