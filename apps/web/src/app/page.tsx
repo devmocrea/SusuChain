@@ -468,6 +468,50 @@ export default function Home() {
                     </div>
                   )}
 
+                  {circleDetails && circleDetails[3] && (
+                    <div style={styles.checklistContainer}>
+                      <h4 style={styles.checklistTitle}>
+                        Round {circleDetails[4]?.toString()} Contribution Checklist
+                      </h4>
+                      <div style={styles.checklistList}>
+                        {circleDetails[3].map((member: string) => {
+                          const hasPaidCurrentRound = !!membersPaymentStatus[member];
+                          const isCurrentUser = address?.toLowerCase() === member.toLowerCase();
+                          return (
+                            <div key={member} style={styles.checklistItem}>
+                              <div style={styles.checklistCheckboxContainer}>
+                                {hasPaidCurrentRound ? (
+                                  <div style={styles.checkedIndicator}>
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                      <path d="M10 3L4.5 8.5L2 6" stroke="#0a0a0a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                  </div>
+                                ) : (
+                                  <div style={styles.uncheckedIndicator} />
+                                )}
+                              </div>
+                              <span style={{
+                                ...styles.memberAddress,
+                                color: isCurrentUser ? CELO_ACCENT : "#fff",
+                                fontWeight: isCurrentUser ? 700 : 400
+                              }}>
+                                {truncate(member)} {isCurrentUser && " (You)"}
+                              </span>
+                              <span style={{
+                                ...styles.statusBadge,
+                                backgroundColor: hasPaidCurrentRound ? "rgba(34, 197, 94, 0.1)" : "rgba(156, 163, 175, 0.1)",
+                                color: hasPaidCurrentRound ? "#22c55e" : "#9ca3af",
+                                borderColor: hasPaidCurrentRound ? "rgba(34, 197, 94, 0.2)" : "rgba(156, 163, 175, 0.2)",
+                              }}>
+                                {hasPaidCurrentRound ? "Paid" : "Pending"}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {circleDetails && circleDetails[6] && (
                     <button
                       style={{
