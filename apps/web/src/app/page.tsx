@@ -179,6 +179,9 @@ export default function Home() {
       const hash = await walletClient.writeContract(request);
 
       setContributeStatus(`✅ TX: ${hash}`);
+      await publicClient.waitForTransactionReceipt({ hash });
+      await handleLoadCircle();
+      setContributeStatus(`✅ TX: ${hash} (Confirmed & Updated!)`);
     } catch (err: any) {
       setContributeStatus(`❌ ${err.message}`);
       captureWeb3Error(err, {
