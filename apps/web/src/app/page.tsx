@@ -52,6 +52,7 @@ export default function Home() {
   const [membersPaymentStatus, setMembersPaymentStatus] = useState<{
     [address: string]: boolean;
   }>({});
+  const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
   const [contributeStatus, setContributeStatus] = useState("");
 
   // --- Stacks Create State ---
