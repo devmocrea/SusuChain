@@ -53,6 +53,7 @@ export default function Home() {
     [address: string]: boolean;
   }>({});
   const [contributeStatus, setContributeStatus] = useState("");
+  const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
 
   // --- Gas Confirmation Modal State ---
   const [modalConfig, setModalConfig] = useState<{
@@ -389,6 +390,67 @@ export default function Home() {
     }
   };
 
+  const handleStacksCreateConfirm = () => {
+    if (!sName || !sContribution || !sMembers) {
+      setSStatus("❌ Please fill in all fields");
+      return;
+    }
+    const memberList = sMembers
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    setModalConfig({
+      isOpen: true,
+      title: "Confirm Stacks circle creation",
+      details: [
+        { label: "Circle Name", value: sName },
+        { label: "Contribution Amount", value: `${sContribution} STX` },
+        { label: "Total Members", value: `${memberList.length} addresses` },
+      ],
+      estimatedFee: "0.001800 STX",
+      isLoadingFee: false,
+      onConfirm: () => {
+        setModalConfig(null);
+        handleStacksCreate();
+      },
+    });
+  };
+
+  const handleStacksContributeConfirm = () => {
+    if (!sCircleId) return;
+    setModalConfig({
+      isOpen: true,
+      title: "Confirm Stacks circle contribution",
+      details: [
+        { label: "Circle ID", value: sCircleId },
+        { label: "Expected Contribution", value: "STX (Wallet prompt)" },
+      ],
+      estimatedFee: "0.000500 STX",
+      isLoadingFee: false,
+      onConfirm: () => {
+        setModalConfig(null);
+        handleStacksContribute();
+      },
+    });
+  };
+
+  const handleStacksPayoutConfirm = () => {
+    if (!sPayoutCircleId) return;
+    setModalConfig({
+      isOpen: true,
+      title: "Confirm Stacks payout trigger",
+      details: [
+        { label: "Circle ID", value: sPayoutCircleId },
+      ],
+      estimatedFee: "0.000500 STX",
+      isLoadingFee: false,
+      onConfirm: () => {
+        setModalConfig(null);
+        handleStacksPayout();
+      },
+    });
+  };
+
   return (
     <div style={styles.page}>
       {/* Header */}
@@ -533,7 +595,7 @@ export default function Home() {
                       backgroundColor: CELO_ACCENT,
                       color: "#0a0a0a",
                     }}
-                    onClick={handleCeloCreate}
+                    onClick={handleCeloCreateConfirm}
                   >
                     Create Circle
                   </button>
@@ -662,7 +724,7 @@ export default function Home() {
                         backgroundColor: CELO_ACCENT,
                         color: "#0a0a0a",
                       }}
-                      onClick={handleCeloContribute}
+                      onClick={handleCeloContributeConfirm}
                     >
                       Contribute{" "}
                       {formatUnits(circleDetails[1], 18)} CELO
@@ -802,7 +864,7 @@ export default function Home() {
                       backgroundColor: STACKS_ACCENT,
                       color: "#fff",
                     }}
-                    onClick={handleStacksCreate}
+                    onClick={handleStacksCreateConfirm}
                   >
                     Create Circle
                   </button>
@@ -830,7 +892,7 @@ export default function Home() {
                       backgroundColor: STACKS_ACCENT,
                       color: "#fff",
                     }}
-                    onClick={handleStacksContribute}
+                    onClick={handleStacksContributeConfirm}
                   >
                     Contribute
                   </button>
@@ -871,7 +933,7 @@ export default function Home() {
                       backgroundColor: STACKS_ACCENT,
                       color: "#fff",
                     }}
-                    onClick={handleStacksPayout}
+                    onClick={handleStacksPayoutConfirm}
                   >
                     Trigger Payout
                   </button>
