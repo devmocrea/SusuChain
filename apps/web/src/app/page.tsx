@@ -122,10 +122,31 @@ export default function Home() {
         args: [BigInt(circleId)],
       });
       setCircleDetails(data);
+
+      const circleIdBigInt = BigInt(circleId);
+      const currentRoundBigInt = data[4];
+      const members = data[3] as readonly `0x${string}`[];
+
+      const paymentStatusMap: { [address: string]: boolean } = {};
+      if (members && members.length > 0) {
+        await Promise.all(
+          members.map(async (member) => {
+            const paid = await publicClient.readContract({
+              address: SUSUCHAIN_CELO_ADDRESS,
+              abi: SUSUCHAIN_CELO_ABI,
+              functionName: "hasPaid",
+              args: [circleIdBigInt, currentRoundBigInt, member],
+            });
+            paymentStatusMap[member] = paid as boolean;
+          })
+        );
+      }
+      setMembersPaymentStatus(paymentStatusMap);
       setContributeStatus("");
     } catch (err: any) {
       setContributeStatus(`❌ ${err.message}`);
       setCircleDetails(null);
+      setMembersPaymentStatus({});
       captureWeb3Error(err, {
         chain: "celo",
         contractAddress: SUSUCHAIN_CELO_ADDRESS,
