@@ -497,12 +497,20 @@ export default function Home() {
                                   <div style={styles.uncheckedIndicator} />
                                 )}
                               </div>
-                              <span style={{
-                                ...styles.memberAddress,
-                                color: isCurrentUser ? CELO_ACCENT : "#fff",
-                                fontWeight: isCurrentUser ? 700 : 400
-                              }}>
+                              <span 
+                                onClick={() => handleCopyAddress(member)}
+                                title="Click to copy address"
+                                style={{
+                                  ...styles.memberAddress,
+                                  color: isCurrentUser ? CELO_ACCENT : "#fff",
+                                  fontWeight: isCurrentUser ? 700 : 400,
+                                  cursor: "pointer",
+                                }}
+                              >
                                 {truncate(member)} {isCurrentUser && " (You)"}
+                                {copiedAddress === member && (
+                                  <span style={styles.copySuccess}> (Copied!)</span>
+                                )}
                               </span>
                               <span style={{
                                 ...styles.statusBadge,
