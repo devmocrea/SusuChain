@@ -16,12 +16,14 @@ npm install susuchain-sdk viem @stacks/network @stacks/transactions @stacks/conn
 
 - **Multi-Chain ABI & Addresses**: Instantly access Solidity ABIs and mainnet contract addresses for both Celo and Stacks.
 - **Stacks Browser Helpers**: Pre-packaged wallet triggers to easily call `create-circle`, `contribute`, and `trigger-payout` using the Leather wallet.
+- **Stacks Server-Side Builders**: Construct and sign Stacks transactions with a private key for backend or scripting environments.
+- **Celo Transaction Param Builders**: Generate ready-to-use contract call parameter objects for viem wallet clients.
 
 ## Usage
 
 This SDK natively supports both **ES Modules (ESM)** and **CommonJS (CJS)** module systems.
 
-### 📦 Importing the SDK
+### Importing the SDK
 
 #### Using ES Modules (import)
 ```typescript
@@ -33,7 +35,7 @@ import { SUSUCHAIN_CELO_ADDRESS, STACKS_CONTRACT_NAME } from 'susuchain-sdk';
 const { SUSUCHAIN_CELO_ADDRESS, STACKS_CONTRACT_NAME } = require('susuchain-sdk');
 ```
 
-### 🟡 Celo Integration (Viem)
+### Celo Integration (Viem)
 
 You can easily interact with the SusuChain smart contract on Celo using `viem`:
 
@@ -59,7 +61,39 @@ async function getCircleDetails(circleId: number) {
 }
 ```
 
-### 🟠 Stacks Integration (Leather Wallet)
+### Celo Server-Side Transactions
+
+Build contract call parameters and pass them to a viem wallet client:
+
+```typescript
+import { createWalletClient, http } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { celo } from 'viem/chains';
+import { buildCeloCreateCircleParams, buildCeloContributeParams } from 'susuchain-sdk';
+
+const account = privateKeyToAccount('0x...');
+const wallet = createWalletClient({ account, chain: celo, transport: http() });
+
+// Create a savings circle
+const createParams = buildCeloCreateCircleParams({
+  name: 'My Circle',
+  contributionWei: 1000000000000000000n, // 1 CELO
+  roundDurationDays: 30,
+  gracePeriodDays: 3,
+  penaltyFee: 0n,
+  members: ['0xAbc...', '0xDef...'],
+});
+const hash = await wallet.writeContract(createParams);
+
+// Contribute to a circle
+const contributeParams = buildCeloContributeParams({
+  circleId: 0,
+  valueWei: 1000000000000000000n,
+});
+const txHash = await wallet.writeContract(contributeParams);
+```
+
+### Stacks Integration (Leather Wallet)
 
 Trigger Stacks smart contract interactions directly inside any web app:
 
@@ -82,6 +116,27 @@ callContribute(0, (data) => {
 });
 ```
 
+### Stacks Server-Side Transactions
+
+Build, sign, and broadcast Stacks transactions from Node.js:
+
+```typescript
+import { buildCreateCircleTx, buildContributeTx, broadcastTx } from 'susuchain-sdk';
+
+// Build and sign a create-circle transaction
+const tx = await buildCreateCircleTx({
+  senderKey: 'your-private-key-hex',
+  name: 'Backend Circle',
+  contributionMicroSTX: 5_000_000,
+  members: ['SP2T02...', 'SP3...'],
+  fee: 2000,
+});
+
+// Broadcast the signed transaction
+const result = await broadcastTx({ transaction: tx });
+console.log('Broadcast result:', result);
+```
+
 ## Exported Constants
 
 ### Celo
@@ -92,6 +147,23 @@ callContribute(0, (data) => {
 - `STACKS_CONTRACT_ADDRESS`: The deployed Stacks principal address on Mainnet.
 - `STACKS_CONTRACT_NAME`: The contract name (`"susuchain"`).
 - `STACKS_NETWORK`: The Stacks network configuration object (Mainnet).
+
+## Exported Functions
+
+### Browser Helpers (Stacks)
+- `callCreateCircle(name, contributionMicroSTX, members, onFinish)`: Open Leather wallet to create a circle.
+- `callContribute(circleId, onFinish)`: Open Leather wallet to contribute.
+- `callTriggerPayout(circleId, onFinish)`: Open Leather wallet to trigger payout.
+
+### Server-Side Builders (Stacks)
+- `buildCreateCircleTx(opts)`: Build and sign a `create-circle` transaction.
+- `buildContributeTx(opts)`: Build and sign a `contribute` transaction.
+- `buildTriggerPayoutTx(opts)`: Build and sign a `trigger-payout` transaction.
+- `broadcastTx(opts)`: Broadcast a signed transaction to the Stacks network.
+
+### Parameter Builders (Celo)
+- `buildCeloCreateCircleParams(opts)`: Returns viem-compatible params for `createCircle`.
+- `buildCeloContributeParams(opts)`: Returns viem-compatible params for `contribute`.
 
 ## Tracking
 
