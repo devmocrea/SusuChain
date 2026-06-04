@@ -52,8 +52,18 @@ export default function Home() {
   const [membersPaymentStatus, setMembersPaymentStatus] = useState<{
     [address: string]: boolean;
   }>({});
-  const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
   const [contributeStatus, setContributeStatus] = useState("");
+  const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
+
+  // --- Gas Confirmation Modal State ---
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    details: { label: string; value: string }[];
+    estimatedFee: string;
+    isLoadingFee: boolean;
+    onConfirm: () => Promise<void> | void;
+  } | null>(null);
 
   // --- Stacks Create State ---
   const [sName, setSName] = useState("");
@@ -203,6 +213,124 @@ export default function Home() {
     }
   };
 
+  const handleCeloCreateConfirm = async () => {
+    if (!circleName || !contributionCelo || !cycleDays || !membersRaw) {
+      setCeloStatus("❌ Please fill in all fields");
+      return;
+    }
+
+    const memberList = membersRaw
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    setModalConfig({
+      isOpen: true,
+      title: "Confirm savings circle creation",
+      details: [
+        { label: "Circle Name", value: circleName },
+        { label: "Contribution Amount", value: `${contributionCelo} CELO` },
+        { label: "Cycle Duration", value: `${cycleDays} days` },
+        { label: "Total Members", value: `${memberList.length} addresses` },
+      ],
+      estimatedFee: "Estimating fee...",
+      isLoadingFee: true,
+      onConfirm: async () => {
+        setModalConfig(null);
+        await handleCeloCreate();
+      },
+    });
+
+    try {
+      const weiAmount = parseUnits(contributionCelo, 18);
+      const gasLimit = await publicClient.estimateContractGas({
+        address: SUSUCHAIN_CELO_ADDRESS,
+        abi: SUSUCHAIN_CELO_ABI,
+        functionName: "createCircle",
+        args: [circleName, weiAmount, BigInt(cycleDays), memberList],
+        account: address as `0x${string}`,
+      });
+      const gasPrice = await publicClient.getGasPrice();
+      const fee = gasLimit * gasPrice;
+      const formattedFee = formatUnits(fee, 18);
+      
+      setModalConfig((prev) =>
+        prev
+          ? {
+              ...prev,
+              estimatedFee: `${parseFloat(formattedFee).toFixed(6)} CELO`,
+              isLoadingFee: false,
+            }
+          : null
+      );
+    } catch (err: any) {
+      setModalConfig((prev) =>
+        prev
+          ? {
+              ...prev,
+              estimatedFee: "Failed to estimate fee",
+              isLoadingFee: false,
+            }
+          : null
+      );
+    }
+  };
+
+  const handleCeloContributeConfirm = async () => {
+    if (!circleDetails) return;
+
+    setModalConfig({
+      isOpen: true,
+      title: "Confirm circle contribution",
+      details: [
+        { label: "Circle ID", value: circleId },
+        { label: "Circle Name", value: circleDetails[0] },
+        { label: "Contribution Amount", value: `${formatUnits(circleDetails[1], 18)} CELO` },
+        { label: "Current Round", value: circleDetails[4]?.toString() },
+      ],
+      estimatedFee: "Estimating fee...",
+      isLoadingFee: true,
+      onConfirm: async () => {
+        setModalConfig(null);
+        await handleCeloContribute();
+      },
+    });
+
+    try {
+      const gasLimit = await publicClient.estimateContractGas({
+        address: SUSUCHAIN_CELO_ADDRESS,
+        abi: SUSUCHAIN_CELO_ABI,
+        functionName: "contribute",
+        args: [BigInt(circleId)],
+        value: BigInt(circleDetails[1].toString()),
+        account: address as `0x${string}`,
+      });
+      const gasPrice = await publicClient.getGasPrice();
+      const fee = gasLimit * gasPrice;
+      const formattedFee = formatUnits(fee, 18);
+
+      setModalConfig((prev) =>
+        prev
+          ? {
+              ...prev,
+              estimatedFee: `${parseFloat(formattedFee).toFixed(6)} CELO`,
+              isLoadingFee: false,
+            }
+          : null
+      );
+    } catch (err: any) {
+      setModalConfig((prev) =>
+        prev
+          ? {
+              ...prev,
+              estimatedFee: "Failed to estimate fee",
+              isLoadingFee: false,
+            }
+          : null
+      );
+    }
+  };
+
   // --- Stacks Handlers ---
   const handleStacksCreate = () => {
     try {
@@ -260,6 +388,67 @@ export default function Home() {
         account: stacksAddress || undefined,
       });
     }
+  };
+
+  const handleStacksCreateConfirm = () => {
+    if (!sName || !sContribution || !sMembers) {
+      setSStatus("❌ Please fill in all fields");
+      return;
+    }
+    const memberList = sMembers
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    setModalConfig({
+      isOpen: true,
+      title: "Confirm Stacks circle creation",
+      details: [
+        { label: "Circle Name", value: sName },
+        { label: "Contribution Amount", value: `${sContribution} STX` },
+        { label: "Total Members", value: `${memberList.length} addresses` },
+      ],
+      estimatedFee: "0.001800 STX",
+      isLoadingFee: false,
+      onConfirm: () => {
+        setModalConfig(null);
+        handleStacksCreate();
+      },
+    });
+  };
+
+  const handleStacksContributeConfirm = () => {
+    if (!sCircleId) return;
+    setModalConfig({
+      isOpen: true,
+      title: "Confirm Stacks circle contribution",
+      details: [
+        { label: "Circle ID", value: sCircleId },
+        { label: "Expected Contribution", value: "STX (Wallet prompt)" },
+      ],
+      estimatedFee: "0.000500 STX",
+      isLoadingFee: false,
+      onConfirm: () => {
+        setModalConfig(null);
+        handleStacksContribute();
+      },
+    });
+  };
+
+  const handleStacksPayoutConfirm = () => {
+    if (!sPayoutCircleId) return;
+    setModalConfig({
+      isOpen: true,
+      title: "Confirm Stacks payout trigger",
+      details: [
+        { label: "Circle ID", value: sPayoutCircleId },
+      ],
+      estimatedFee: "0.000500 STX",
+      isLoadingFee: false,
+      onConfirm: () => {
+        setModalConfig(null);
+        handleStacksPayout();
+      },
+    });
   };
 
   return (
@@ -406,7 +595,7 @@ export default function Home() {
                       backgroundColor: CELO_ACCENT,
                       color: "#0a0a0a",
                     }}
-                    onClick={handleCeloCreate}
+                    onClick={handleCeloCreateConfirm}
                   >
                     Create Circle
                   </button>
@@ -535,7 +724,7 @@ export default function Home() {
                         backgroundColor: CELO_ACCENT,
                         color: "#0a0a0a",
                       }}
-                      onClick={handleCeloContribute}
+                      onClick={handleCeloContributeConfirm}
                     >
                       Contribute{" "}
                       {formatUnits(circleDetails[1], 18)} CELO
@@ -675,7 +864,7 @@ export default function Home() {
                       backgroundColor: STACKS_ACCENT,
                       color: "#fff",
                     }}
-                    onClick={handleStacksCreate}
+                    onClick={handleStacksCreateConfirm}
                   >
                     Create Circle
                   </button>
@@ -703,7 +892,7 @@ export default function Home() {
                       backgroundColor: STACKS_ACCENT,
                       color: "#fff",
                     }}
-                    onClick={handleStacksContribute}
+                    onClick={handleStacksContributeConfirm}
                   >
                     Contribute
                   </button>
@@ -744,7 +933,7 @@ export default function Home() {
                       backgroundColor: STACKS_ACCENT,
                       color: "#fff",
                     }}
-                    onClick={handleStacksPayout}
+                    onClick={handleStacksPayoutConfirm}
                   >
                     Trigger Payout
                   </button>
@@ -756,6 +945,54 @@ export default function Home() {
             </div>
           )}
         </>
+      )}
+
+      {modalConfig && modalConfig.isOpen && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modalContent}>
+            <h3 style={styles.modalTitle}>{modalConfig.title}</h3>
+            
+            <div style={styles.modalDetails}>
+              {modalConfig.details.map((detail, index) => (
+                <div key={index} style={styles.modalDetailRow}>
+                  <span style={styles.modalDetailLabel}>{detail.label}:</span>
+                  <span style={styles.modalDetailValue}>{detail.value}</span>
+                </div>
+              ))}
+            </div>
+
+            <div style={styles.feeContainer}>
+              <div style={styles.feeTitle}>Estimated Network Fee</div>
+              <div style={styles.feeValue}>
+                {modalConfig.isLoadingFee ? (
+                  <span style={styles.feeLoading}>⏳ Estimating fee...</span>
+                ) : (
+                  <span style={styles.feeAmount}>{modalConfig.estimatedFee}</span>
+                )}
+              </div>
+            </div>
+
+            <div style={styles.modalActions}>
+              <button 
+                style={styles.modalCancelBtn} 
+                onClick={() => setModalConfig(null)}
+              >
+                Cancel
+              </button>
+              <button 
+                style={{
+                  ...styles.modalConfirmBtn,
+                  opacity: modalConfig.isLoadingFee ? 0.6 : 1,
+                  cursor: modalConfig.isLoadingFee ? "not-allowed" : "pointer",
+                }} 
+                onClick={modalConfig.onConfirm}
+                disabled={modalConfig.isLoadingFee}
+              >
+                Confirm &amp; Submit
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Footer */}
@@ -986,6 +1223,121 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 700,
     textTransform: "uppercase" as const,
     border: "1px solid",
+  },
+  modalOverlay: {
+    position: "fixed" as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.75)",
+    backdropFilter: "blur(8px)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1000,
+    padding: 16,
+  },
+  modalContent: {
+    backgroundColor: "#111",
+    border: "1px solid #333",
+    borderRadius: 16,
+    width: "100%",
+    maxWidth: 440,
+    padding: 24,
+    boxSizing: "border-box" as const,
+    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 700,
+    color: "#fff",
+    margin: "0 0 16px 0",
+    borderBottom: "1px solid #222",
+    paddingBottom: 12,
+  },
+  modalDetails: {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: 10,
+    marginBottom: 20,
+    backgroundColor: "#1a1a1a",
+    padding: 14,
+    borderRadius: 8,
+    border: "1px solid #222",
+  },
+  modalDetailRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    fontSize: 14,
+  },
+  modalDetailLabel: {
+    color: "#9ca3af",
+    fontWeight: 500,
+  },
+  modalDetailValue: {
+    color: "#fff",
+    fontWeight: 600,
+    fontFamily: "monospace",
+    wordBreak: "break-all" as const,
+    maxWidth: "60%",
+  },
+  feeContainer: {
+    backgroundColor: "rgba(252, 100, 50, 0.05)",
+    border: "1px solid rgba(252, 100, 50, 0.15)",
+    borderRadius: 8,
+    padding: 14,
+    marginBottom: 24,
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  feeTitle: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: "#9ca3af",
+  },
+  feeValue: {
+    fontSize: 15,
+    fontWeight: 700,
+    color: "#fc6432",
+    fontFamily: "monospace",
+  },
+  feeLoading: {
+    color: "#9ca3af",
+    fontSize: 13,
+    fontWeight: 500,
+  },
+  feeAmount: {
+    color: "#fc6432",
+  },
+  modalActions: {
+    display: "flex",
+    gap: 12,
+    justifyContent: "flex-end",
+  },
+  modalCancelBtn: {
+    backgroundColor: "transparent",
+    border: "1px solid #333",
+    color: "#9ca3af",
+    padding: "10px 20px",
+    borderRadius: 8,
+    fontSize: 14,
+    fontWeight: 600,
+    cursor: "pointer",
+    transition: "all 0.2s",
+  },
+  modalConfirmBtn: {
+    backgroundColor: "#fff",
+    border: "none",
+    color: "#0a0a0a",
+    padding: "10px 20px",
+    borderRadius: 8,
+    fontSize: 14,
+    fontWeight: 700,
+    cursor: "pointer",
+    transition: "all 0.2s",
   },
   footer: {
     marginTop: "auto",
