@@ -177,3 +177,38 @@ export async function broadcastTx(opts: {
   return result;
 }
 
+export function buildCeloCreateCircleParams(opts: {
+  name: string;
+  contributionWei: bigint;
+  roundDurationDays: number;
+  gracePeriodDays: number;
+  penaltyFee: bigint;
+  members: string[];
+}) {
+  return {
+    address: SUSUCHAIN_CELO_ADDRESS as `0x${string}`,
+    abi: SUSUCHAIN_CELO_ABI,
+    functionName: "createCircle" as const,
+    args: [
+      opts.name,
+      opts.contributionWei,
+      BigInt(opts.roundDurationDays),
+      BigInt(opts.gracePeriodDays),
+      opts.penaltyFee,
+      opts.members as `0x${string}`[],
+    ],
+  };
+}
+
+export function buildCeloContributeParams(opts: {
+  circleId: number;
+  valueWei: bigint;
+}) {
+  return {
+    address: SUSUCHAIN_CELO_ADDRESS as `0x${string}`,
+    abi: SUSUCHAIN_CELO_ABI,
+    functionName: "contribute" as const,
+    args: [BigInt(opts.circleId)],
+    value: opts.valueWei,
+  };
+}
