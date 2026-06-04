@@ -118,7 +118,6 @@ export async function buildCreateCircleTx(opts: {
     ],
     senderKey: opts.senderKey,
     network: STACKS_NETWORK,
-    anchorMode: AnchorMode.Any,
     fee: opts.fee,
     nonce: opts.nonce,
   });
@@ -138,7 +137,6 @@ export async function buildContributeTx(opts: {
     functionArgs: [uintCV(opts.circleId)],
     senderKey: opts.senderKey,
     network: STACKS_NETWORK,
-    anchorMode: AnchorMode.Any,
     postConditionMode: PostConditionMode.Allow,
     fee: opts.fee,
     nonce: opts.nonce,
@@ -159,7 +157,6 @@ export async function buildTriggerPayoutTx(opts: {
     functionArgs: [uintCV(opts.circleId)],
     senderKey: opts.senderKey,
     network: STACKS_NETWORK,
-    anchorMode: AnchorMode.Any,
     postConditionMode: PostConditionMode.Allow,
     fee: opts.fee,
     nonce: opts.nonce,
