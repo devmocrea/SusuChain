@@ -21,7 +21,10 @@ import {
   principalCV,
   AnchorMode,
   PostConditionMode,
+  makeContractCall,
+  broadcastTransaction,
 } from "@stacks/transactions";
+import type { StacksTransactionWire, TxBroadcastResult } from "@stacks/transactions";
 
 /**
  * Open Leather wallet to call create-circle
@@ -94,4 +97,115 @@ export function callTriggerPayout(
     onFinish,
     onCancel: () => console.log("trigger-payout cancelled"),
   });
+}
+
+export async function buildCreateCircleTx(opts: {
+  senderKey: string;
+  name: string;
+  contributionMicroSTX: number;
+  members: string[];
+  fee?: number;
+  nonce?: number;
+}): Promise<StacksTransactionWire> {
+  const tx = await makeContractCall({
+    contractAddress: STACKS_CONTRACT_ADDRESS,
+    contractName: STACKS_CONTRACT_NAME,
+    functionName: "create-circle",
+    functionArgs: [
+      stringAsciiCV(opts.name.slice(0, 50)),
+      uintCV(opts.contributionMicroSTX),
+      listCV(opts.members.slice(0, 10).map((m) => principalCV(m))),
+    ],
+    senderKey: opts.senderKey,
+    network: STACKS_NETWORK,
+    fee: opts.fee,
+    nonce: opts.nonce,
+  });
+  return tx;
+}
+
+export async function buildContributeTx(opts: {
+  senderKey: string;
+  circleId: number;
+  fee?: number;
+  nonce?: number;
+}): Promise<StacksTransactionWire> {
+  const tx = await makeContractCall({
+    contractAddress: STACKS_CONTRACT_ADDRESS,
+    contractName: STACKS_CONTRACT_NAME,
+    functionName: "contribute",
+    functionArgs: [uintCV(opts.circleId)],
+    senderKey: opts.senderKey,
+    network: STACKS_NETWORK,
+    postConditionMode: PostConditionMode.Allow,
+    fee: opts.fee,
+    nonce: opts.nonce,
+  });
+  return tx;
+}
+
+export async function buildTriggerPayoutTx(opts: {
+  senderKey: string;
+  circleId: number;
+  fee?: number;
+  nonce?: number;
+}): Promise<StacksTransactionWire> {
+  const tx = await makeContractCall({
+    contractAddress: STACKS_CONTRACT_ADDRESS,
+    contractName: STACKS_CONTRACT_NAME,
+    functionName: "trigger-payout",
+    functionArgs: [uintCV(opts.circleId)],
+    senderKey: opts.senderKey,
+    network: STACKS_NETWORK,
+    postConditionMode: PostConditionMode.Allow,
+    fee: opts.fee,
+    nonce: opts.nonce,
+  });
+  return tx;
+}
+
+export async function broadcastTx(opts: {
+  transaction: StacksTransactionWire;
+}): Promise<TxBroadcastResult> {
+  const result = await broadcastTransaction({
+    transaction: opts.transaction,
+    network: STACKS_NETWORK,
+  });
+  return result;
+}
+
+export function buildCeloCreateCircleParams(opts: {
+  name: string;
+  contributionWei: bigint;
+  roundDurationDays: number;
+  gracePeriodDays: number;
+  penaltyFee: bigint;
+  members: string[];
+}) {
+  return {
+    address: SUSUCHAIN_CELO_ADDRESS as `0x${string}`,
+    abi: SUSUCHAIN_CELO_ABI,
+    functionName: "createCircle" as const,
+    args: [
+      opts.name,
+      opts.contributionWei,
+      BigInt(opts.roundDurationDays),
+      BigInt(opts.gracePeriodDays),
+      opts.penaltyFee,
+      opts.members as `0x${string}`[],
+    ],
+  };
+}
+
+export function buildCeloContributeParams(opts: {
+  circleId: number;
+  valueWei: bigint;
+}) {
+  return {
+    address: SUSUCHAIN_CELO_ADDRESS as `0x${string}`,
+    abi: SUSUCHAIN_CELO_ABI,
+    functionName: "contribute" as const,
+    args: [BigInt(opts.circleId)],
+    value: opts.valueWei,
+  };
 }

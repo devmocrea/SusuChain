@@ -38,6 +38,11 @@
     "@stacks/transactions": "^7.0.0",
     "@stacks/connect": "^8.0.0"
   },
+  "peerDependenciesMeta": {
+    "@stacks/connect": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "tsup": "^8.0.2",
     "typescript": "^5.0.0"
