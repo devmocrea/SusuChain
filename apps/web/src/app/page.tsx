@@ -29,89 +29,6 @@ const STACKS_ACCENT = "#fc6432";
 
 const publicClient = createPublicClient({ chain: celo, transport: http() });
 
-interface ProcessedMembersResult {
-  members: string[];
-  error?: string;
-}
-
-function processCeloMembers(raw: string, creatorAddress?: string): ProcessedMembersResult {
-  if (!creatorAddress) {
-    return { members: [], error: "Wallet not connected" };
-  }
-
-  let list = raw
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  // Validate format of input addresses
-  for (const m of list) {
-    if (!/^0x[a-fA-F0-9]{40}$/.test(m)) {
-      return { members: [], error: `Invalid Celo address format: "${m}"` };
-    }
-  }
-
-  const creatorClean = creatorAddress.toLowerCase();
-  list = list.filter((m) => m.toLowerCase() !== creatorClean);
-  list.unshift(creatorAddress);
-
-  // Check for duplicates
-  const lowercased = list.map((m) => m.toLowerCase());
-  const unique = new Set(lowercased);
-  if (unique.size !== list.length) {
-    return { members: [], error: "Duplicate member addresses are not allowed" };
-  }
-
-  if (list.length < 2) {
-    return { members: [], error: "A circle must have at least 2 members (including yourself)" };
-  }
-
-  if (list.length > 10) {
-    return { members: [], error: "A circle can have a maximum of 10 members" };
-  }
-
-  return { members: list };
-}
-
-function processStacksMembers(raw: string, creatorAddress?: string): ProcessedMembersResult {
-  if (!creatorAddress) {
-    return { members: [], error: "Wallet not connected" };
-  }
-
-  let list = raw
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  // Validate format of input addresses
-  for (const m of list) {
-    if (!/^S[PMT][0-9a-zA-Z]{37,42}$/.test(m)) {
-      return { members: [], error: `Invalid Stacks address format: "${m}"` };
-    }
-  }
-
-  const creatorClean = creatorAddress.toLowerCase();
-  list = list.filter((m) => m.toLowerCase() !== creatorClean);
-  list.unshift(creatorAddress);
-
-  // Check for duplicates
-  const lowercased = list.map((m) => m.toLowerCase());
-  const unique = new Set(lowercased);
-  if (unique.size !== list.length) {
-    return { members: [], error: "Duplicate member addresses are not allowed" };
-  }
-
-  if (list.length < 2) {
-    return { members: [], error: "A circle must have at least 2 members (including yourself)" };
-  }
-
-  if (list.length > 10) {
-    return { members: [], error: "A circle can have a maximum of 10 members" };
-  }
-
-  return { members: list };
-}
-
 export default function Home() {
   // --- Global State ---
   const [activeChain, setActiveChain] = useState<"celo" | "stacks">("celo");
@@ -143,7 +60,6 @@ export default function Home() {
     isOpen: boolean;
     title: string;
     details: { label: string; value: string }[];
-    memberRotation?: string[];
     estimatedFee: string;
     isLoadingFee: boolean;
     onConfirm: () => Promise<void> | void;
@@ -181,10 +97,14 @@ export default function Home() {
   const accent = activeChain === "celo" ? CELO_ACCENT : STACKS_ACCENT;
 
   // --- Celo Handlers ---
-  const handleCeloCreate = async (validatedMembers: string[]) => {
+  const handleCeloCreate = async () => {
     try {
       setCeloStatus("⏳ Submitting...");
       const weiAmount = parseUnits(contributionCelo, 18);
+      const memberList = membersRaw
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean);
       const walletClient = createWalletClient({
         chain: celo,
         transport: custom(window.ethereum as any),
@@ -193,7 +113,7 @@ export default function Home() {
         address: SUSUCHAIN_CELO_ADDRESS,
         abi: SUSUCHAIN_CELO_ABI,
         functionName: "createCircle",
-        args: [circleName, weiAmount, BigInt(cycleDays), validatedMembers],
+        args: [circleName, weiAmount, BigInt(cycleDays), memberList],
         account: address as `0x${string}`,
       });
       setCeloStatus(`✅ TX: ${hash}`);
@@ -203,7 +123,7 @@ export default function Home() {
         chain: "celo",
         contractAddress: SUSUCHAIN_CELO_ADDRESS,
         functionName: "createCircle",
-        arguments: [circleName, contributionCelo, cycleDays, validatedMembers.join("\n")],
+        arguments: [circleName, contributionCelo, cycleDays, membersRaw],
         account: address || undefined,
       });
     }
@@ -299,12 +219,10 @@ export default function Home() {
       return;
     }
 
-    const res = processCeloMembers(membersRaw, address);
-    if (res.error) {
-      setCeloStatus(`❌ ${res.error}`);
-      return;
-    }
-    const validatedMembers = res.members;
+    const memberList = membersRaw
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
 
     setModalConfig({
       isOpen: true,
@@ -313,14 +231,13 @@ export default function Home() {
         { label: "Circle Name", value: circleName },
         { label: "Contribution Amount", value: `${contributionCelo} CELO` },
         { label: "Cycle Duration", value: `${cycleDays} days` },
-        { label: "Total Members", value: `${validatedMembers.length} addresses` },
+        { label: "Total Members", value: `${memberList.length} addresses` },
       ],
-      memberRotation: validatedMembers,
       estimatedFee: "Estimating fee...",
       isLoadingFee: true,
       onConfirm: async () => {
         setModalConfig(null);
-        await handleCeloCreate(validatedMembers);
+        await handleCeloCreate();
       },
     });
 
@@ -330,7 +247,7 @@ export default function Home() {
         address: SUSUCHAIN_CELO_ADDRESS,
         abi: SUSUCHAIN_CELO_ABI,
         functionName: "createCircle",
-        args: [circleName, weiAmount, BigInt(cycleDays), validatedMembers],
+        args: [circleName, weiAmount, BigInt(cycleDays), memberList],
         account: address as `0x${string}`,
       });
       const gasPrice = await publicClient.getGasPrice();
@@ -415,10 +332,14 @@ export default function Home() {
   };
 
   // --- Stacks Handlers ---
-  const handleStacksCreate = (validatedMembers: string[]) => {
+  const handleStacksCreate = () => {
     try {
       const microSTX = Math.floor(parseFloat(sContribution) * 1_000_000);
-      callCreateCircle(sName, microSTX, validatedMembers, (data: any) => {
+      const memberList = sMembers
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      callCreateCircle(sName, microSTX, memberList, (data: any) => {
         setSStatus(
           `✅ TX: ${data.txId} — link: https://explorer.hiro.so/txid/${data.txId}`
         );
@@ -429,7 +350,7 @@ export default function Home() {
         chain: "stacks",
         contractAddress: STACKS_CONTRACT_ADDRESS,
         functionName: "create-circle",
-        arguments: [sName, sContribution, validatedMembers.join("\n")],
+        arguments: [sName, sContribution, sMembers],
         account: stacksAddress || undefined,
       });
     }
@@ -474,27 +395,23 @@ export default function Home() {
       setSStatus("❌ Please fill in all fields");
       return;
     }
-    const res = processStacksMembers(sMembers, stacksAddress);
-    if (res.error) {
-      setSStatus(`❌ ${res.error}`);
-      return;
-    }
-    const validatedMembers = res.members;
-
+    const memberList = sMembers
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
     setModalConfig({
       isOpen: true,
       title: "Confirm Stacks circle creation",
       details: [
         { label: "Circle Name", value: sName },
         { label: "Contribution Amount", value: `${sContribution} STX` },
-        { label: "Total Members", value: `${validatedMembers.length} addresses` },
+        { label: "Total Members", value: `${memberList.length} addresses` },
       ],
-      memberRotation: validatedMembers,
       estimatedFee: "0.001800 STX",
       isLoadingFee: false,
       onConfirm: () => {
         setModalConfig(null);
-        handleStacksCreate(validatedMembers);
+        handleStacksCreate();
       },
     });
   };
@@ -1044,42 +961,6 @@ export default function Home() {
               ))}
             </div>
 
-            {modalConfig.memberRotation && modalConfig.memberRotation.length > 0 && (
-              <div style={styles.modalRotationSection}>
-                <div style={styles.modalRotationTitle}>Rotation / Payout Order</div>
-                <div style={styles.modalRotationList}>
-                  {modalConfig.memberRotation.map((member, idx) => {
-                    const isCelo = activeChain === "celo";
-                    const accentColor = isCelo ? CELO_ACCENT : STACKS_ACCENT;
-                    const badgeBg = isCelo ? "rgba(252, 255, 82, 0.1)" : "rgba(252, 100, 50, 0.1)";
-                    const badgeBorder = isCelo ? "rgba(252, 255, 82, 0.2)" : "rgba(252, 100, 50, 0.2)";
-                    const isCreator = idx === 0;
-
-                    return (
-                      <div key={idx} style={styles.modalRotationItem}>
-                        <span style={styles.modalRotationIndex}>{idx + 1}.</span>
-                        <span style={styles.modalRotationAddr} title={member}>
-                          {truncate(member)}
-                        </span>
-                        {isCreator && (
-                          <span 
-                            style={{ 
-                              ...styles.modalRotationBadge, 
-                              color: accentColor, 
-                              backgroundColor: badgeBg, 
-                              borderColor: badgeBorder 
-                            }}
-                          >
-                            Creator
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
             <div style={styles.feeContainer}>
               <div style={styles.feeTitle}>Estimated Network Fee</div>
               <div style={styles.feeValue}>
@@ -1457,52 +1338,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 700,
     cursor: "pointer",
     transition: "all 0.2s",
-  },
-  modalRotationSection: {
-    backgroundColor: "#1a1a1a",
-    border: "1px solid #222",
-    borderRadius: 8,
-    padding: 14,
-    marginBottom: 20,
-  },
-  modalRotationTitle: {
-    fontSize: 11,
-    fontWeight: 700,
-    color: "#a3a3a3",
-    textTransform: "uppercase" as const,
-    letterSpacing: "0.05em",
-    marginTop: 0,
-    marginBottom: 10,
-  },
-  modalRotationList: {
-    display: "flex",
-    flexDirection: "column" as const,
-    gap: 6,
-  },
-  modalRotationItem: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    fontSize: 13,
-  },
-  modalRotationIndex: {
-    fontFamily: "monospace",
-    color: "#9ca3af",
-    fontWeight: 700,
-    width: 16,
-  },
-  modalRotationAddr: {
-    fontFamily: "monospace",
-    color: "#fff",
-    flex: 1,
-  },
-  modalRotationBadge: {
-    fontSize: 9,
-    fontWeight: 700,
-    textTransform: "uppercase" as const,
-    padding: "2px 6px",
-    borderRadius: 4,
-    border: "1px solid",
   },
   footer: {
     marginTop: "auto",
