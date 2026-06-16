@@ -34,7 +34,7 @@ interface ProcessedMembersResult {
   error?: string;
 }
 
-function processCeloMembers(raw: string, creatorAddress?: string): ProcessedMembersResult {
+function processCeloMembers(raw: string, creatorAddress?: string | null): ProcessedMembersResult {
   if (!creatorAddress) {
     return { members: [], error: "Wallet not connected" };
   }
@@ -73,7 +73,7 @@ function processCeloMembers(raw: string, creatorAddress?: string): ProcessedMemb
   return { members: list };
 }
 
-function processStacksMembers(raw: string, creatorAddress?: string): ProcessedMembersResult {
+function processStacksMembers(raw: string, creatorAddress?: string | null): ProcessedMembersResult {
   if (!creatorAddress) {
     return { members: [], error: "Wallet not connected" };
   }
