@@ -12,12 +12,16 @@ Install the SDK alongside its peer dependencies:
 npm install susuchain-sdk viem @stacks/network @stacks/transactions @stacks/connect
 ```
 
+> **Note:** `@stacks/connect` is an optional peer dependency — only required for browser wallet helpers.
+
 ## Features
 
 - **Multi-Chain ABI & Addresses**: Instantly access Solidity ABIs and mainnet contract addresses for both Celo and Stacks.
 - **Stacks Browser Helpers**: Pre-packaged wallet triggers to easily call `create-circle`, `contribute`, and `trigger-payout` using the Leather wallet.
 - **Stacks Server-Side Builders**: Construct and sign Stacks transactions with a private key for backend or scripting environments.
-- **Celo Transaction Param Builders**: Generate ready-to-use contract call parameter objects for viem wallet clients.
+- **Stacks Read-Only Helpers**: Query on-chain Stacks state (`get-circle`, `get-circle-count`, `has-member-paid`, `is-member`) from Node.js.
+- **Celo Transaction Param Builders**: Generate ready-to-use contract call parameter objects for viem wallet clients (both read and write operations).
+- **TypeScript Interfaces**: Fully typed option interfaces for all builders.
 
 ## Usage
 
@@ -61,7 +65,7 @@ async function getCircleDetails(circleId: number) {
 }
 ```
 
-### Celo Server-Side Transactions
+### Celo Server-Side Transactions (Write)
 
 Build contract call parameters and pass them to a viem wallet client:
 
@@ -91,6 +95,57 @@ const contributeParams = buildCeloContributeParams({
   valueWei: 1000000000000000000n,
 });
 const txHash = await wallet.writeContract(contributeParams);
+
+// Withdraw pending payouts
+const withdrawParams = buildCeloWithdrawParams();
+await wallet.writeContract(withdrawParams);
+```
+
+### Celo Server-Side Read Operations
+
+Use param builders with a viem public client to query on-chain state:
+
+```typescript
+import { createPublicClient, http } from 'viem';
+import { celo } from 'viem/chains';
+import {
+  buildCeloGetCircleParams,
+  buildCeloCircleCountParams,
+  buildCeloIsMemberParams,
+  buildCeloHasPaidParams,
+  buildCeloGetMemberCountParams,
+  buildCeloRoundBalanceParams,
+  buildCeloPendingWithdrawalsParams,
+} from 'susuchain-sdk';
+
+const client = createPublicClient({ chain: celo, transport: http() });
+
+// Get total circle count
+const count = await client.readContract(buildCeloCircleCountParams());
+
+// Get circle details
+const circle = await client.readContract(buildCeloGetCircleParams(0));
+
+// Check membership
+const isMember = await client.readContract(
+  buildCeloIsMemberParams({ circleId: 0, user: '0xAbc...' })
+);
+
+// Check payment status
+const hasPaid = await client.readContract(
+  buildCeloHasPaidParams({ circleId: 0, round: 0, member: '0xAbc...' })
+);
+
+// Get member count
+const memberCount = await client.readContract(buildCeloGetMemberCountParams(0));
+
+// Get round balance
+const balance = await client.readContract(buildCeloRoundBalanceParams(0));
+
+// Check pending withdrawals
+const pending = await client.readContract(
+  buildCeloPendingWithdrawalsParams('0xAbc...')
+);
 ```
 
 ### Stacks Integration (Leather Wallet)
@@ -137,6 +192,33 @@ const result = await broadcastTx({ transaction: tx });
 console.log('Broadcast result:', result);
 ```
 
+### Stacks Read-Only Queries
+
+Query on-chain Stacks state from server-side Node.js:
+
+```typescript
+import {
+  readGetCircle,
+  readGetCircleCount,
+  readHasMemberPaid,
+  readIsMember,
+} from 'susuchain-sdk';
+
+const senderAddress = 'SP2T02XBVN9RAZ4360DSWF3JCG79B1QY2NR21RB0Q';
+
+// Get circle details
+const circle = await readGetCircle(0, senderAddress);
+
+// Get total circle count
+const count = await readGetCircleCount(senderAddress);
+
+// Check if a member has paid
+const hasPaid = await readHasMemberPaid(0, 0, 'SP3...', senderAddress);
+
+// Check membership
+const isMember = await readIsMember(0, 'SP3...', senderAddress);
+```
+
 ## Exported Constants
 
 ### Celo
@@ -161,13 +243,40 @@ console.log('Broadcast result:', result);
 - `buildTriggerPayoutTx(opts)`: Build and sign a `trigger-payout` transaction.
 - `broadcastTx(opts)`: Broadcast a signed transaction to the Stacks network.
 
-### Parameter Builders (Celo)
+### Read-Only Helpers (Stacks)
+- `readGetCircle(circleId, senderAddress)`: Query circle details.
+- `readGetCircleCount(senderAddress)`: Query total circle count.
+- `readHasMemberPaid(circleId, round, member, senderAddress)`: Check payment status.
+- `readIsMember(circleId, user, senderAddress)`: Check membership.
+
+### Parameter Builders — Write (Celo)
 - `buildCeloCreateCircleParams(opts)`: Returns viem-compatible params for `createCircle`.
 - `buildCeloContributeParams(opts)`: Returns viem-compatible params for `contribute`.
+- `buildCeloWithdrawParams()`: Returns viem-compatible params for `withdraw`.
+
+### Parameter Builders — Read (Celo)
+- `buildCeloGetCircleParams(circleId)`: Returns params for `getCircle`.
+- `buildCeloIsMemberParams(opts)`: Returns params for `isMember`.
+- `buildCeloGetMemberCountParams(circleId)`: Returns params for `getMemberCount`.
+- `buildCeloHasPaidParams(opts)`: Returns params for `hasPaid`.
+- `buildCeloCircleCountParams()`: Returns params for `circleCount`.
+- `buildCeloRoundBalanceParams(circleId)`: Returns params for `roundBalance`.
+- `buildCeloPendingWithdrawalsParams(account)`: Returns params for `pendingWithdrawals`.
+
+## Exported TypeScript Interfaces
+
+- `CreateCircleTxOptions`: Options for Stacks `buildCreateCircleTx`.
+- `ContributeTxOptions`: Options for Stacks `buildContributeTx`.
+- `TriggerPayoutTxOptions`: Options for Stacks `buildTriggerPayoutTx`.
+- `BroadcastTxOptions`: Options for `broadcastTx`.
+- `CeloCreateCircleOptions`: Options for `buildCeloCreateCircleParams`.
+- `CeloContributeOptions`: Options for `buildCeloContributeParams`.
+- `CeloHasPaidOptions`: Options for `buildCeloHasPaidParams`.
+- `CeloIsMemberOptions`: Options for `buildCeloIsMemberParams`.
 
 ## Tracking
 
-This release satisfies clean ES Modules and CommonJS packaging guidelines in alignment with issue #27.
+This release satisfies clean ES Modules and CommonJS packaging guidelines in alignment with issues #25 and #27.
 
 ## License
 
