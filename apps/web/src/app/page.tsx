@@ -34,7 +34,7 @@ interface ProcessedMembersResult {
   error?: string;
 }
 
-function processCeloMembers(raw: string, creatorAddress?: string | null): ProcessedMembersResult {
+function processCeloMembers(raw: string, creatorAddress?: string): ProcessedMembersResult {
   if (!creatorAddress) {
     return { members: [], error: "Wallet not connected" };
   }
@@ -73,7 +73,7 @@ function processCeloMembers(raw: string, creatorAddress?: string | null): Proces
   return { members: list };
 }
 
-function processStacksMembers(raw: string, creatorAddress?: string | null): ProcessedMembersResult {
+function processStacksMembers(raw: string, creatorAddress?: string): ProcessedMembersResult {
   if (!creatorAddress) {
     return { members: [], error: "Wallet not connected" };
   }
@@ -299,7 +299,7 @@ export default function Home() {
       return;
     }
 
-    const res = processCeloMembers(membersRaw, address);
+    const res = processCeloMembers(membersRaw, address ?? undefined);
     if (res.error) {
       setCeloStatus(`❌ ${res.error}`);
       return;
@@ -474,7 +474,7 @@ export default function Home() {
       setSStatus("❌ Please fill in all fields");
       return;
     }
-    const res = processStacksMembers(sMembers, stacksAddress);
+    const res = processStacksMembers(sMembers, stacksAddress ?? undefined);
     if (res.error) {
       setSStatus(`❌ ${res.error}`);
       return;
