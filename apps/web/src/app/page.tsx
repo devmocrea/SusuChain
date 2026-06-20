@@ -1,6 +1,6 @@
 "use client";
 // Note: metadata must be exported from layout.tsx in Next.js App Router (not from "use client" components)
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   createPublicClient,
   createWalletClient,
@@ -21,6 +21,8 @@ import {
   callContribute,
   callTriggerPayout,
   STACKS_CONTRACT_ADDRESS,
+  fetchStacksCircle,
+  fetchStacksMemberPaid,
 } from "@/lib/susuchain-stacks";
 import { captureWeb3Error } from "@/lib/sentry-web3";
 
@@ -163,6 +165,16 @@ export default function Home() {
   const [sPayoutCircleId, setSPayoutCircleId] = useState("");
   const [sPayoutStatus, setSPayoutStatus] = useState("");
 
+  // --- Stacks Contribute/Payout Load State ---
+  const [sCircleDetails, setSCircleDetails] = useState<any>(null);
+  const [sMembersPaymentStatus, setSMembersPaymentStatus] = useState<{
+    [address: string]: boolean;
+  }>({});
+
+  // --- Celo Pending Withdrawal State ---
+  const [celoPendingWithdrawal, setCeloPendingWithdrawal] = useState<bigint>(0n);
+  const [celoWithdrawStatus, setCeloWithdrawStatus] = useState("");
+
   // --- Stacks active tab (has 3 tabs) ---
   const [stacksTab, setStacksTab] = useState<
     "create" | "contribute" | "payout"
@@ -206,6 +218,101 @@ export default function Home() {
         arguments: [circleName, contributionCelo, cycleDays, validatedMembers.join("\n")],
         account: address || undefined,
       });
+    }
+  };
+
+  // --- Celo Withdrawal Handlers ---
+  const handleLoadCeloWithdrawal = async () => {
+    if (!address) return;
+    try {
+      const pending = await publicClient.readContract({
+        address: SUSUCHAIN_CELO_ADDRESS,
+        abi: SUSUCHAIN_CELO_ABI,
+        functionName: "pendingWithdrawals",
+        args: [address as `0x${string}`],
+      });
+      setCeloPendingWithdrawal(pending as bigint);
+    } catch (err) {
+      console.error("Failed to load Celo pending withdrawal:", err);
+    }
+  };
+
+  const handleCeloWithdraw = async () => {
+    try {
+      setCeloWithdrawStatus("⏳ Submitting withdrawal...");
+      const walletClient = createWalletClient({
+        chain: celo,
+        transport: custom(window.ethereum as any),
+      });
+      const hash = await walletClient.writeContract({
+        address: SUSUCHAIN_CELO_ADDRESS,
+        abi: SUSUCHAIN_CELO_ABI,
+        functionName: "withdraw",
+        args: [],
+        account: address as `0x${string}`,
+      });
+      setCeloWithdrawStatus(`✅ TX: ${hash}`);
+      await publicClient.waitForTransactionReceipt({ hash });
+      setCeloWithdrawStatus("✅ Withdrawal confirmed and claimed!");
+      setCeloPendingWithdrawal(0n);
+    } catch (err: any) {
+      setCeloWithdrawStatus(`❌ ${err.message}`);
+    }
+  };
+
+  useEffect(() => {
+    if (address && activeChain === "celo") {
+      handleLoadCeloWithdrawal();
+    }
+  }, [address, activeChain]);
+
+  // --- Stacks Loader Handler ---
+  const handleLoadStacksCircle = async (idStr: string) => {
+    if (!idStr) return;
+    try {
+      setSContributeStatus("⏳ Loading...");
+      setSPayoutStatus("⏳ Loading...");
+      const id = parseInt(idStr);
+      if (!stacksAddress) {
+        setSContributeStatus("❌ Wallet not connected");
+        setSPayoutStatus("❌ Wallet not connected");
+        return;
+      }
+      const data = await fetchStacksCircle(id, stacksAddress);
+      if (!data) {
+        setSCircleDetails(null);
+        setSMembersPaymentStatus({});
+        setSContributeStatus("❌ Circle not found");
+        setSPayoutStatus("❌ Circle not found");
+        return;
+      }
+      setSCircleDetails(data);
+
+      const currentRoundNum = Number(data.currentRound);
+      const paymentStatusMap: { [address: string]: boolean } = {};
+      
+      if (data.members && data.members.length > 0) {
+        await Promise.all(
+          data.members.map(async (member) => {
+            const paid = await fetchStacksMemberPaid(
+              id,
+              currentRoundNum,
+              member,
+              stacksAddress
+            );
+            paymentStatusMap[member] = paid;
+          })
+        );
+      }
+      setSMembersPaymentStatus(paymentStatusMap);
+      setSContributeStatus("");
+      setSPayoutStatus("");
+    } catch (err: any) {
+      console.error(err);
+      setSCircleDetails(null);
+      setSMembersPaymentStatus({});
+      setSContributeStatus(`❌ ${err.message || "Failed to load circle"}`);
+      setSPayoutStatus(`❌ ${err.message || "Failed to load circle"}`);
     }
   };
 
@@ -501,13 +608,24 @@ export default function Home() {
 
   const handleStacksContributeConfirm = () => {
     if (!sCircleId) return;
+    const details = [
+      { label: "Circle ID", value: sCircleId },
+    ];
+    if (sCircleDetails) {
+      const stxAmount = (Number(sCircleDetails.contribution) / 1_000_000).toString();
+      details.push(
+        { label: "Circle Name", value: sCircleDetails.name },
+        { label: "Expected Contribution", value: `${stxAmount} STX` },
+        { label: "Current Round", value: sCircleDetails.currentRound.toString() }
+      );
+    } else {
+      details.push({ label: "Expected Contribution", value: "STX (Wallet prompt)" });
+    }
+
     setModalConfig({
       isOpen: true,
       title: "Confirm Stacks circle contribution",
-      details: [
-        { label: "Circle ID", value: sCircleId },
-        { label: "Expected Contribution", value: "STX (Wallet prompt)" },
-      ],
+      details,
       estimatedFee: "0.000500 STX",
       isLoadingFee: false,
       onConfirm: () => {
@@ -519,12 +637,20 @@ export default function Home() {
 
   const handleStacksPayoutConfirm = () => {
     if (!sPayoutCircleId) return;
+    const details = [
+      { label: "Circle ID", value: sPayoutCircleId },
+    ];
+    if (sCircleDetails) {
+      details.push(
+        { label: "Circle Name", value: sCircleDetails.name },
+        { label: "Current Round", value: sCircleDetails.currentRound.toString() }
+      );
+    }
+
     setModalConfig({
       isOpen: true,
       title: "Confirm Stacks payout trigger",
-      details: [
-        { label: "Circle ID", value: sPayoutCircleId },
-      ],
+      details,
       estimatedFee: "0.000500 STX",
       isLoadingFee: false,
       onConfirm: () => {
@@ -605,6 +731,49 @@ export default function Home() {
                 </span>
               </div>
 
+              {/* Claim Banner for Failed Celo Payouts */}
+              {celoPendingWithdrawal > 0n && (
+                <div style={{
+                  backgroundColor: "rgba(239, 68, 68, 0.1)",
+                  border: "1px solid rgba(239, 68, 68, 0.25)",
+                  borderRadius: 12,
+                  padding: 16,
+                  marginBottom: 16,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 10,
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 16 }}>⚠️</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: "#f87171" }}>
+                      You have failed payouts to claim!
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 13, color: "#cbd5e1", margin: 0 }}>
+                    An automatic payout of <strong>{formatUnits(celoPendingWithdrawal, 18)} CELO</strong> failed previously. You can claim it directly to your wallet.
+                  </p>
+                  <button
+                    style={{
+                      backgroundColor: "#ef4444",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 8,
+                      padding: "8px 16px",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      width: "fit-content",
+                    }}
+                    onClick={handleCeloWithdraw}
+                  >
+                    Claim {formatUnits(celoPendingWithdrawal, 18)} CELO
+                  </button>
+                  {celoWithdrawStatus && (
+                    <p style={{ ...styles.status, marginTop: 4, color: "#f87171" }}>{celoWithdrawStatus}</p>
+                  )}
+                </div>
+              )}
+
               {/* Tabs */}
               <div style={styles.tabRow}>
                 <button
@@ -672,6 +841,9 @@ export default function Home() {
                     value={membersRaw}
                     onChange={(e) => setMembersRaw(e.target.value)}
                   />
+                  <p style={{ color: "#9ca3af", fontSize: 11, marginTop: 4, marginBottom: 12 }}>
+                    💡 Note: Your connected address will be automatically included as the first member in rotation.
+                  </p>
                   <button
                     style={{
                       ...styles.actionBtn,
@@ -941,6 +1113,9 @@ export default function Home() {
                     value={sMembers}
                     onChange={(e) => setSMembers(e.target.value)}
                   />
+                  <p style={{ color: "#9ca3af", fontSize: 11, marginTop: 4, marginBottom: 12 }}>
+                    💡 Note: Your connected address will be automatically included as the first member in rotation.
+                  </p>
                   <button
                     style={{
                       ...styles.actionBtn,
@@ -972,13 +1147,99 @@ export default function Home() {
                   <button
                     style={{
                       ...styles.actionBtn,
-                      backgroundColor: STACKS_ACCENT,
+                      backgroundColor: "#333",
                       color: "#fff",
+                      marginBottom: 12,
                     }}
-                    onClick={handleStacksContributeConfirm}
+                    onClick={() => handleLoadStacksCircle(sCircleId)}
                   >
-                    Contribute
+                    Load Circle
                   </button>
+
+                  {sCircleDetails && (
+                    <div style={styles.detailsBox}>
+                      <p>
+                        <strong>Name:</strong> {sCircleDetails.name}
+                      </p>
+                      <p>
+                        <strong>Contribution:</strong>{" "}
+                        {Number(sCircleDetails.contribution) / 1_000_000} STX
+                      </p>
+                      <p>
+                        <strong>Round:</strong>{" "}
+                        {sCircleDetails.currentRound.toString()}
+                      </p>
+                      <p>
+                        <strong>Active:</strong>{" "}
+                        {sCircleDetails.active ? "✅ Yes" : "❌ No"}
+                      </p>
+                    </div>
+                  )}
+
+                  {sCircleDetails && sCircleDetails.members && (
+                    <div style={styles.checklistContainer}>
+                      <h4 style={styles.checklistTitle}>
+                        Round {sCircleDetails.currentRound.toString()} Contribution Checklist
+                      </h4>
+                      <div style={styles.checklistList}>
+                        {sCircleDetails.members.map((member: string) => {
+                          const hasPaidCurrentRound = !!sMembersPaymentStatus[member];
+                          const isCurrentUser = stacksAddress?.toLowerCase() === member.toLowerCase();
+                          return (
+                            <div key={member} style={styles.checklistItem}>
+                              <div style={styles.checklistCheckboxContainer}>
+                                {hasPaidCurrentRound ? (
+                                  <div style={styles.checkedIndicator}>
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                      <path d="M10 3L4.5 8.5L2 6" stroke="#0a0a0a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                  </div>
+                                ) : (
+                                  <div style={styles.uncheckedIndicator} />
+                                )}
+                              </div>
+                              <span 
+                                onClick={() => handleCopyAddress(member)}
+                                title="Click to copy address"
+                                style={{
+                                  ...styles.memberAddress,
+                                  color: isCurrentUser ? STACKS_ACCENT : "#fff",
+                                  fontWeight: isCurrentUser ? 700 : 400,
+                                  cursor: "pointer",
+                                }}
+                              >
+                                {truncate(member)} {isCurrentUser && " (You)"}
+                                {copiedAddress === member && (
+                                  <span style={styles.copySuccess}> (Copied!)</span>
+                                )}
+                              </span>
+                              <span style={{
+                                ...styles.statusBadge,
+                                backgroundColor: hasPaidCurrentRound ? "rgba(34, 197, 94, 0.1)" : "rgba(156, 163, 175, 0.1)",
+                                color: hasPaidCurrentRound ? "#22c55e" : "#9ca3af",
+                                borderColor: hasPaidCurrentRound ? "rgba(34, 197, 94, 0.2)" : "rgba(156, 163, 175, 0.2)",
+                              }}>
+                                {hasPaidCurrentRound ? "Paid" : "Pending"}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {sCircleDetails && sCircleDetails.active && (
+                    <button
+                      style={{
+                        ...styles.actionBtn,
+                        backgroundColor: STACKS_ACCENT,
+                        color: "#fff",
+                      }}
+                      onClick={handleStacksContributeConfirm}
+                    >
+                      Contribute {Number(sCircleDetails.contribution) / 1_000_000} STX
+                    </button>
+                  )}
                   {sContributeStatus && (
                     <p style={styles.status}>{sContributeStatus}</p>
                   )}
@@ -1013,13 +1274,90 @@ export default function Home() {
                   <button
                     style={{
                       ...styles.actionBtn,
-                      backgroundColor: STACKS_ACCENT,
+                      backgroundColor: "#333",
                       color: "#fff",
+                      marginBottom: 12,
                     }}
-                    onClick={handleStacksPayoutConfirm}
+                    onClick={() => handleLoadStacksCircle(sPayoutCircleId)}
                   >
-                    Trigger Payout
+                    Load Circle
                   </button>
+
+                  {sCircleDetails && (
+                    <div style={styles.detailsBox}>
+                      <p>
+                        <strong>Name:</strong> {sCircleDetails.name}
+                      </p>
+                      <p>
+                        <strong>Contribution:</strong>{" "}
+                        {Number(sCircleDetails.contribution) / 1_000_000} STX
+                      </p>
+                      <p>
+                        <strong>Current Round:</strong>{" "}
+                        {sCircleDetails.currentRound.toString()}
+                      </p>
+                      <p>
+                        <strong>Active:</strong>{" "}
+                        {sCircleDetails.active ? "✅ Yes" : "❌ No"}
+                      </p>
+                    </div>
+                  )}
+
+                  {sCircleDetails && (
+                    <div style={styles.checklistContainer}>
+                      <h4 style={styles.checklistTitle}>Payout Details</h4>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: 14 }}>
+                        <div>
+                          <span style={{ color: "#9ca3af" }}>Creator: </span>
+                          <span style={{ fontFamily: "monospace" }}>
+                            {truncate(sCircleDetails.members[0])}
+                            {stacksAddress?.toLowerCase() === sCircleDetails.members[0].toLowerCase() && " (You)"}
+                          </span>
+                        </div>
+                        <div>
+                          <span style={{ color: "#9ca3af" }}>Current Recipient: </span>
+                          <span style={{ fontFamily: "monospace", color: STACKS_ACCENT, fontWeight: 700 }}>
+                            {truncate(sCircleDetails.members[Number(sCircleDetails.currentRound) % sCircleDetails.members.length])}
+                            {stacksAddress?.toLowerCase() === sCircleDetails.members[Number(sCircleDetails.currentRound) % sCircleDetails.members.length].toLowerCase() && " (You)"}
+                          </span>
+                        </div>
+                        <div>
+                          <span style={{ color: "#9ca3af" }}>Contributions: </span>
+                          <span>
+                            {Object.values(sMembersPaymentStatus).filter(Boolean).length} / {sCircleDetails.members.length} Paid
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {sCircleDetails && sCircleDetails.active && (
+                    <button
+                      style={{
+                        ...styles.actionBtn,
+                        backgroundColor: STACKS_ACCENT,
+                        color: "#fff",
+                        opacity: (stacksAddress?.toLowerCase() === sCircleDetails.members[0].toLowerCase() && Object.values(sMembersPaymentStatus).filter(Boolean).length === sCircleDetails.members.length) ? 1 : 0.5,
+                      }}
+                      onClick={handleStacksPayoutConfirm}
+                      disabled={!(stacksAddress?.toLowerCase() === sCircleDetails.members[0].toLowerCase() && Object.values(sMembersPaymentStatus).filter(Boolean).length === sCircleDetails.members.length)}
+                    >
+                      Trigger Payout
+                    </button>
+                  )}
+                  
+                  {sCircleDetails && sCircleDetails.active && stacksAddress?.toLowerCase() !== sCircleDetails.members[0].toLowerCase() && (
+                    <p style={{ color: "#ef4444", fontSize: 12, marginTop: 10, textAlign: "center" }}>
+                      ⚠️ Only the creator {truncate(sCircleDetails.members[0])} can trigger payouts.
+                    </p>
+                  )}
+
+                  {sCircleDetails && sCircleDetails.active && stacksAddress?.toLowerCase() === sCircleDetails.members[0].toLowerCase() && Object.values(sMembersPaymentStatus).filter(Boolean).length !== sCircleDetails.members.length && (
+                    <p style={{ color: "#eab308", fontSize: 12, marginTop: 10, textAlign: "center" }}>
+                      ⚠️ Waiting for all members to contribute before payout can be triggered.
+                    </p>
+                  )}
+
                   {sPayoutStatus && (
                     <p style={styles.status}>{sPayoutStatus}</p>
                   )}
