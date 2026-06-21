@@ -9,6 +9,21 @@ requirements = []
 path = 'contracts/susuchain.clar'
 clarity_version = 3
 epoch = 'latest'
+
+[contracts.susu-reputation]
+path = 'contracts/susu-reputation.clar'
+clarity_version = 3
+epoch = 'latest'
+
+[contracts.susu-registry]
+path = 'contracts/susu-registry.clar'
+clarity_version = 3
+epoch = 'latest'
+
+[contracts.susu-vault]
+path = 'contracts/susu-vault.clar'
+clarity_version = 3
+epoch = 'latest'
 [repl.analysis]
 passes = ['check_checker']
 

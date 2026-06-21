@@ -1,0 +1,37 @@
+# GitHub Actions CI Workflow for SDK Build Checks
+
+name: SDK CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'packages/sdk/**'
+      - '.github/workflows/sdk-ci.yml'
+
+jobs:
+  build:
+    name: Build and Validate SDK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8.10.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build SDK
+        run: pnpm --filter susuchain-sdk build
