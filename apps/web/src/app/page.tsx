@@ -190,6 +190,51 @@ export default function Home() {
     setTimeout(() => setCopiedAddress(null), 2000);
   };
 
+  const StatusMessage = ({ status, chain }: { status: string; chain: "celo" | "stacks" }) => {
+    if (!status) return null;
+
+    const accentColor = chain === "celo" ? CELO_ACCENT : STACKS_ACCENT;
+
+    // Check if it's a transaction status
+    if (status.includes("✅ TX:")) {
+      const match = status.match(/✅ TX:\s*([0-9a-zA-Z]{2,100})/);
+      if (match) {
+        const txHash = match[1];
+        const suffix = status.split(txHash)[1] || "";
+        const explorerUrl =
+          chain === "celo"
+            ? `https://explorer.celo.org/tx/${txHash}`
+            : `https://explorer.hiro.so/txid/${txHash}`;
+
+        return (
+          <p style={styles.status}>
+            ✅ TX:{" "}
+            <a
+              href={explorerUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: accentColor, textDecoration: "underline", fontWeight: 600 }}
+            >
+              {truncate(txHash)}
+            </a>
+            {suffix}
+          </p>
+        );
+      }
+    }
+
+    // Default status message
+    const isError = status.startsWith("❌");
+    const isSuccess = status.startsWith("✅");
+    const textColor = isError ? "#f87171" : isSuccess ? "#4ade80" : "#fff";
+
+    return (
+      <p style={{ ...styles.status, color: textColor }}>
+        {status}
+      </p>
+    );
+  };
+
   const accent = activeChain === "celo" ? CELO_ACCENT : STACKS_ACCENT;
 
   // --- Celo Handlers ---
@@ -526,9 +571,7 @@ export default function Home() {
     try {
       const microSTX = Math.floor(parseFloat(sContribution) * 1_000_000);
       callCreateCircle(sName, microSTX, validatedMembers, (data: any) => {
-        setSStatus(
-          `✅ TX: ${data.txId} — link: https://explorer.hiro.so/txid/${data.txId}`
-        );
+        setSStatus(`✅ TX: ${data.txId}`);
       });
     } catch (err: any) {
       setSStatus(`❌ ${err.message}`);
@@ -768,9 +811,7 @@ export default function Home() {
                   >
                     Claim {formatUnits(celoPendingWithdrawal, 18)} CELO
                   </button>
-                  {celoWithdrawStatus && (
-                    <p style={{ ...styles.status, marginTop: 4, color: "#f87171" }}>{celoWithdrawStatus}</p>
-                  )}
+                  <StatusMessage status={celoWithdrawStatus} chain="celo" />
                 </div>
               )}
 
@@ -854,25 +895,7 @@ export default function Home() {
                   >
                     Create Circle
                   </button>
-                  {celoStatus && (
-                    <p style={styles.status}>
-                      {celoStatus.startsWith("✅ TX:") ? (
-                        <>
-                          ✅ TX:{" "}
-                          <a
-                            href={`https://explorer.celo.org/tx/${celoStatus.replace("✅ TX: ", "")}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ color: CELO_ACCENT }}
-                          >
-                            {truncate(celoStatus.replace("✅ TX: ", ""))}
-                          </a>
-                        </>
-                      ) : (
-                        celoStatus
-                      )}
-                    </p>
-                  )}
+                  <StatusMessage status={celoStatus} chain="celo" />
                 </div>
               )}
 
@@ -985,9 +1008,7 @@ export default function Home() {
                       {formatUnits(circleDetails[1], 18)} CELO
                     </button>
                   )}
-                  {contributeStatus && (
-                    <p style={styles.status}>{contributeStatus}</p>
-                  )}
+                  <StatusMessage status={contributeStatus} chain="celo" />
                 </div>
               )}
             </div>
@@ -1126,7 +1147,7 @@ export default function Home() {
                   >
                     Create Circle
                   </button>
-                  {sStatus && <p style={styles.status}>{sStatus}</p>}
+                  <StatusMessage status={sStatus} chain="stacks" />
                 </div>
               )}
 
@@ -1240,9 +1261,7 @@ export default function Home() {
                       Contribute {Number(sCircleDetails.contribution) / 1_000_000} STX
                     </button>
                   )}
-                  {sContributeStatus && (
-                    <p style={styles.status}>{sContributeStatus}</p>
-                  )}
+                  <StatusMessage status={sContributeStatus} chain="stacks" />
                 </div>
               )}
 
@@ -1358,9 +1377,7 @@ export default function Home() {
                     </p>
                   )}
 
-                  {sPayoutStatus && (
-                    <p style={styles.status}>{sPayoutStatus}</p>
-                  )}
+                  <StatusMessage status={sPayoutStatus} chain="stacks" />
                 </div>
               )}
             </div>
